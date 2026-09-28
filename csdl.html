@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tra cứu Học sinh - Trường Tiểu học Lương Thế Vinh</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .table-scroll::-webkit-scrollbar { height: 8px; width: 8px; }
+        .table-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+        .table-scroll::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        .table-scroll::-webkit-scrollbar-thumb:hover { background: #555; }
+        thead th { position: sticky; top: 0; z-index: 10; }
+    </style>
+</head>
+<body class="bg-gray-50 h-screen flex flex-col font-sans overflow-hidden">
+
+    <!-- Header -->
+    <header class="flex-none bg-blue-600 text-white shadow-md py-3">
+        <div class="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
+            <h1 class="text-xl font-bold uppercase">Hệ thống Tra cứu Học sinh</h1>
+            <div class="text-sm font-medium hidden md:block">Trường Tiểu học Lương Thế Vinh</div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 container mx-auto px-2 sm:px-4 py-4 flex flex-col min-h-0 gap-4">
+        
+        <!-- Thanh công cụ -->
+        <div class="flex-none bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col lg:flex-row gap-4 justify-between items-center">
+            
+            <!-- Khu vực Tìm kiếm & Lọc -->
+            <div class="w-full lg:w-2/3 flex flex-col sm:flex-row gap-2">
+                <select id="searchColumn" class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-medium text-gray-700">
+                    <option value="all">🔍 Tìm tất cả</option>
+                    <option value="Họ và tên">👤 Theo Họ và tên</option>
+                    <option value="Lớp">🏫 Theo Lớp</option>
+                    <option value="Di động">📱 Theo SĐT (Di động)</option>
+                </select>
+                
+                <div class="relative flex-1">
+                    <input type="text" id="searchInput" 
+                        class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                        placeholder="Nhập từ khóa tìm kiếm...">
+                    <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Nút chức năng & Thống kê -->
+            <div class="flex items-center gap-2 sm:gap-4 w-full lg:w-auto justify-between lg:justify-end">
+                <div class="text-gray-600 text-sm font-medium whitespace-nowrap">
+                    Lọc: <span id="rowCount" class="text-blue-600 font-bold">0</span> KQ
+                </div>
+                
+                <div class="flex gap-2">
+                    <!-- Nút Thống kê -->
+                    <button onclick="showStatistics()" class="bg-green-50 hover:bg-green-100 text-green-600 px-3 py-2 rounded-lg text-sm font-medium border border-green-200 flex items-center gap-1 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        <span class="hidden sm:inline">Thống kê</span>
+                    </button>
+
+                    <!-- Nút Làm mới -->
+                    <button onclick="fetchData(true)" class="bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-2 rounded-lg text-sm font-medium border border-blue-200 flex items-center gap-1 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        <span class="hidden sm:inline">Làm mới</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trạng thái đang tải -->
+        <div id="loadingState" class="flex-1 flex flex-col items-center justify-center hidden">
+            <svg class="animate-spin h-10 w-10 text-blue-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="text-gray-600 font-medium">Đang tải dữ liệu từ Google Sheets...</p>
+        </div>
+
+        <!-- Thông báo lỗi -->
+        <div id="errorState" class="hidden flex-1 flex-col items-center justify-center py-10">
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative max-w-lg text-center">
+                <strong class="font-bold">Lỗi kết nối!</strong>
+                <span class="block sm:inline mt-1" id="errorMessage">Không thể lấy dữ liệu. Vui lòng kiểm tra lại mạng hoặc thử ấn "Làm mới".</span>
+            </div>
+            <button onclick="fetchData(true)" class="mt-4 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg transition-colors">
+                Tải lại
+            </button>
+        </div>
+
+        <!-- Container Bảng -->
+        <div id="tableContainer" class="hidden flex-1 flex flex-col bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden min-h-0">
+            
+            <div class="flex-1 overflow-auto table-scroll relative bg-white">
+                <table class="w-full whitespace-nowrap text-left border-collapse">
+                    <thead id="tableHead" class="bg-gray-100 text-gray-700 text-sm uppercase font-semibold">
+                    </thead>
+                    <tbody id="tableBody" class="text-gray-600 text-sm divide-y divide-gray-200">
+                    </tbody>
+                </table>
+                
+                <div id="noDataState" class="hidden text-center py-20 text-gray-500 absolute inset-0 bg-white">
+                    Không tìm thấy học sinh nào phù hợp.
+                </div>
+            </div>
+
+            <!-- Thanh phân trang -->
+            <div class="flex-none bg-gray-50 px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+                <div class="text-sm text-gray-700">
+                    Trang <span id="pageInfo" class="font-bold">1/1</span>
+                </div>
+                <div class="flex gap-2">
+                    <button id="prevBtn" onclick="changePage(-1)" class="px-3 py-1 bg-white border border-gray-300 rounded text-sm hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Trước
+                    </button>
+                    <button id="nextBtn" onclick="changePage(1)" class="px-3 py-1 bg-white border border-gray-300 rounded text-sm hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Sau
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="flex-none bg-gray-800 text-gray-300 py-2">
+        <div class="container mx-auto px-4 text-center text-xs">
+            &copy; 2026 - Giải pháp quản lý thông tin. Thiết kế và phát triển bởi <strong>Tin học Cường Tín</strong>.
+        </div>
+    </footer>
+
+    <!-- Modal Thống Kê -->
+    <div id="statsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 transition-opacity">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50">
+                <h3 class="font-bold text-lg text-gray-800 flex items-center gap-2">
+                    📊 Thống kê học sinh
+                </h3>
+                <button onclick="closeStatistics()" class="text-gray-400 hover:text-gray-600 hover:bg-gray-200 p-1 rounded-full transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-5 flex-1 overflow-y-auto">
+                <div class="grid grid-cols-1 gap-4">
+                    <!-- Thẻ Mầm non -->
+                    <div class="bg-pink-50 p-4 rounded-lg border border-pink-100 flex justify-between items-center shadow-sm">
+                        <div>
+                            <h4 class="font-bold text-pink-700 text-lg">Mầm non</h4>
+                            <p class="text-xs text-pink-600 mt-1">(Mầm, Chồi, Lá)</p>
+                        </div>
+                        <span id="statMamNon" class="text-3xl font-black text-pink-600">0</span>
+                    </div>
+                    <!-- Thẻ Tiểu học -->
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 flex justify-between items-center shadow-sm">
+                        <div>
+                            <h4 class="font-bold text-blue-700 text-lg">Tiểu học</h4>
+                            <p class="text-xs text-blue-600 mt-1">(Lớp 1 đến lớp 5)</p>
+                        </div>
+                        <span id="statTieuHoc" class="text-3xl font-black text-blue-600">0</span>
+                    </div>
+                    <!-- Thẻ Cấp 2 -->
+                    <div class="bg-emerald-50 p-4 rounded-lg border border-emerald-100 flex justify-between items-center shadow-sm">
+                        <div>
+                            <h4 class="font-bold text-emerald-700 text-lg">Cấp 2 (THCS)</h4>
+                            <p class="text-xs text-emerald-600 mt-1">(Lớp 6 đến lớp 9)</p>
+                        </div>
+                        <span id="statCap2" class="text-3xl font-black text-emerald-600">0</span>
+                    </div>
+                    <!-- Tổng -->
+                    <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 flex justify-between items-center shadow-md mt-2">
+                        <h4 class="font-bold text-white text-lg">Tổng toàn trường</h4>
+                        <span id="statTong" class="text-3xl font-black text-yellow-400">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycby2ezXLR-tLo5OVVhdWcUCSaa9kidRPx3RUZEHmNvciw5-1WdLCFbUXsbvLucne8ahWvg/exec";
+        // Cập nhật key cache để load bản mới nhất
+        const CACHE_KEY = "luongTheVinhData_V5_Stats"; 
+        
+        let allStudents = [];
+        let filteredStudents = [];
+        let tableKeys = [];
+        
+        let currentPage = 1;
+        const ITEMS_PER_PAGE = 50;
+
+        const loadingState = document.getElementById('loadingState');
+        const errorState = document.getElementById('errorState');
+        const errorMessage = document.getElementById('errorMessage');
+        const tableContainer = document.getElementById('tableContainer');
+        const tableHead = document.getElementById('tableHead');
+        const tableBody = document.getElementById('tableBody');
+        const searchInput = document.getElementById('searchInput');
+        const searchColumn = document.getElementById('searchColumn');
+        const rowCount = document.getElementById('rowCount');
+        const noDataState = document.getElementById('noDataState');
+        const pageInfo = document.getElementById('pageInfo');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        function processData(data) {
+            return data.map(item => {
+                let newItem = {};
+                for (let key of Object.keys(item)) {
+                    let cleanKey = key.trim(); 
+                    let keyLower = cleanKey.toLowerCase();
+                    
+                    if (keyLower === 'stt lớp' || keyLower === 'stt') {
+                        continue;
+                    }
+                    
+                    if (cleanKey === 'Họ') {
+                        let ho = (item[key] || '').toString().trim();
+                        let ten = (item['Tên'] || item[' Tên '] || '').toString().trim();
+                        newItem['Họ và tên'] = (ho + ' ' + ten).trim();
+                    } else if (cleanKey === 'Tên') {
+                        continue;
+                    } else {
+                        let val = item[key];
+                        if (cleanKey === 'SĐD cá nhân' || cleanKey === 'Di động' || cleanKey === 'Di động HS') {
+                            if (val !== null && val !== undefined && val !== '') {
+                                val = String(val).trim();
+                                if (!val.startsWith('0') && !isNaN(val)) {
+                                    val = '0' + val;
+                                }
+                            }
+                        }
+                        newItem[cleanKey] = val;
+                    }
+                }
+                return newItem;
+            });
+        }
+
+        async function fetchData(forceRefresh = false) {
+            loadingState.classList.remove('hidden');
+            tableContainer.classList.add('hidden');
+            errorState.classList.add('hidden');
+            
+            try {
+                if (!forceRefresh) {
+                    const cachedData = sessionStorage.getItem(CACHE_KEY);
+                    if (cachedData) {
+                        const parsedData = JSON.parse(cachedData);
+                        allStudents = parsedData.data;
+                        tableKeys = parsedData.keys;
+                        filteredStudents = [...allStudents];
+                        
+                        renderHeaders();
+                        renderPage(1);
+                        loadingState.classList.add('hidden');
+                        tableContainer.classList.remove('hidden');
+                        return;
+                    }
+                }
+
+                const response = await fetch(API_URL);
+                const result = await response.json();
+                
+                if (result.status === "success") {
+                    let rawData = result.data;
+                    
+                    if (rawData.length > 0) {
+                        allStudents = processData(rawData);
+                        tableKeys = Object.keys(allStudents[0]);
+                        filteredStudents = [...allStudents];
+                        
+                        sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+                            data: allStudents,
+                            keys: tableKeys
+                        }));
+                        
+                        renderHeaders();
+                        renderPage(1);
+                        loadingState.classList.add('hidden');
+                        tableContainer.classList.remove('hidden');
+                    } else {
+                        throw new Error("Dữ liệu trả về rỗng.");
+                    }
+                } else {
+                    throw new Error("Lỗi cấu trúc trả về từ Server.");
+                }
+            } catch (error) {
+                console.error("Chi tiết lỗi:", error);
+                loadingState.classList.add('hidden');
+                tableContainer.classList.add('hidden');
+                errorState.classList.remove('hidden');
+                errorState.style.display = 'flex';
+                errorMessage.textContent = "Không thể đọc dữ liệu: " + error.message;
+            }
+        }
+
+        function renderHeaders() {
+            let tr = document.createElement('tr');
+            
+            tableKeys.forEach(key => {
+                let th = document.createElement('th');
+                th.className = "px-4 py-3 border-b border-gray-200 tracking-wider font-bold bg-gray-100 whitespace-nowrap";
+                th.textContent = key;
+                tr.appendChild(th);
+            });
+            tableHead.innerHTML = '';
+            tableHead.appendChild(tr);
+        }
+
+        function changePage(direction) {
+            const totalPages = Math.ceil(filteredStudents.length / ITEMS_PER_PAGE);
+            let newPage = currentPage + direction;
+            if (newPage >= 1 && newPage <= totalPages) {
+                renderPage(newPage);
+            }
+        }
+
+        function renderPage(page) {
+            currentPage = page;
+            const totalItems = filteredStudents.length;
+            const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE) || 1;
+            
+            tableBody.innerHTML = '';
+            
+            if (totalItems === 0) {
+                noDataState.classList.remove('hidden');
+                pageInfo.textContent = `0/0`;
+                prevBtn.disabled = true;
+                nextBtn.disabled = true;
+                rowCount.textContent = "0";
+                return;
+            } 
+            
+            noDataState.classList.add('hidden');
+            const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+            const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalItems);
+            const dataToRender = filteredStudents.slice(startIndex, endIndex);
+
+            dataToRender.forEach((student, index) => {
+                let tr = document.createElement('tr');
+                tr.className = `hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`;
+
+                tableKeys.forEach(key => {
+                    let td = document.createElement('td');
+                    td.className = "px-4 py-2 border-b border-gray-100 whitespace-nowrap";
+                    let cellValue = student[key] || "";
+                    
+                    if (typeof cellValue === 'string' && cellValue.match(/^\d{4}-\d{2}-\d{2}T/)) {
+                        let dateObj = new Date(cellValue);
+                        if (!isNaN(dateObj)) cellValue = dateObj.toLocaleDateString('vi-VN');
+                    }
+                    
+                    td.textContent = cellValue;
+                    tr.appendChild(td);
+                });
+                tableBody.appendChild(tr);
+            });
+            
+            rowCount.textContent = totalItems;
+            pageInfo.textContent = `${currentPage}/${totalPages}`;
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+        }
+
+        function executeSearch() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const filterCol = searchColumn.value;
+
+            if (searchTerm === "") {
+                filteredStudents = [...allStudents];
+            } else {
+                filteredStudents = allStudents.filter(student => {
+                    if (filterCol === "all") {
+                        return tableKeys.some(key => {
+                            const val = student[key];
+                            if (val === null || val === undefined) return false;
+                            return val.toString().toLowerCase().includes(searchTerm);
+                        });
+                    } else {
+                        const val = student[filterCol];
+                        if (val === null || val === undefined) return false;
+                        return val.toString().toLowerCase().includes(searchTerm);
+                    }
+                });
+            }
+            renderPage(1);
+        }
+        
+        // HÀM HIỂN THỊ MODAL THỐNG KÊ
+        function showStatistics() {
+            if (allStudents.length === 0) {
+                alert("Dữ liệu đang trống. Vui lòng tải dữ liệu trước!");
+                return;
+            }
+
+            let mNon = 0, tHoc = 0, cHai = 0, tong = allStudents.length;
+
+            allStudents.forEach(student => {
+                // Lấy giá trị ở cột Lớp
+                let lop = (student['Lớp'] || '').toString().toLowerCase().trim();
+                
+                // Mầm non (Chứa chữ mầm, chồi, lá)
+                if (lop.includes('mầm') || lop.includes('chồi') || lop.includes('lá')) {
+                    mNon++;
+                } 
+                // Tiểu học (Bắt đầu bằng số 1, 2, 3, 4, 5)
+                else if (/^[1-5]/.test(lop)) {
+                    tHoc++;
+                } 
+                // Cấp 2 (Bắt đầu bằng số 6, 7, 8, 9)
+                else if (/^[6-9]/.test(lop)) {
+                    cHai++;
+                }
+            });
+
+            // Đổ dữ liệu vào Modal
+            document.getElementById('statMamNon').textContent = mNon;
+            document.getElementById('statTieuHoc').textContent = tHoc;
+            document.getElementById('statCap2').textContent = cHai;
+            document.getElementById('statTong').textContent = tong;
+
+            // Hiển thị Modal
+            document.getElementById('statsModal').classList.remove('hidden');
+        }
+
+        // HÀM ĐÓNG MODAL THỐNG KÊ
+        function closeStatistics() {
+            document.getElementById('statsModal').classList.add('hidden');
+        }
+
+        searchInput.addEventListener('input', executeSearch);
+        searchColumn.addEventListener('change', executeSearch);
+        
+        // Đóng Modal khi bấm ra ngoài vùng đen
+        document.getElementById('statsModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeStatistics();
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', () => fetchData(false));
+    </script>
+</body>
+</html>
