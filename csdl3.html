@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tra cứu Học sinh - CSDL học sinh 3 cấp học</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .table-scroll::-webkit-scrollbar { height: 8px; width: 8px; }
+        .table-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+        .table-scroll::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        .table-scroll::-webkit-scrollbar-thumb:hover { background: #555; }
+        thead th { position: sticky; top: 0; z-index: 10; }
+        .modal-scroll::-webkit-scrollbar { width: 6px; }
+        .modal-scroll::-webkit-scrollbar-track { background: #f1f1f1; rounded: 4px;}
+        .modal-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .modal-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-gray-50 h-screen flex flex-col font-sans overflow-hidden">
+
+    <!-- Header -->
+    <header class="flex-none bg-blue-600 text-white shadow-md py-3">
+        <div class="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
+            <h1 class="text-xl font-bold uppercase">Hệ thống Tra cứu Học sinh</h1>
+            <div class="text-sm font-medium hidden md:block">CSDL học sinh 3 cấp học</div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 container mx-auto px-2 sm:px-4 py-4 flex flex-col min-h-0 gap-4">
+        
+        <!-- Thanh công cụ -->
+        <div class="flex-none bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col lg:flex-row gap-4 justify-between items-center">
+            <!-- Khu vực Tìm kiếm & Lọc -->
+            <div class="w-full lg:w-2/3 flex flex-col sm:flex-row gap-2">
+                <select id="searchColumn" class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-medium text-gray-700">
+                    <option value="all">🔍 Tìm tất cả</option>
+                    <option value="Họ và tên">👤 Theo Tên (HS, Cha, Mẹ)</option>
+                    <option value="Lớp">🏫 Theo Lớp</option>
+                    <option value="Di động">📱 Theo SĐT (Di động)</option>
+                </select>
+                
+                <div class="relative flex-1">
+                    <input type="text" id="searchInput" 
+                        class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                        placeholder="Nhập từ khóa tìm kiếm...">
+                    <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Nút chức năng & Thống kê -->
+            <div class="flex items-center gap-2 sm:gap-4 w-full lg:w-auto justify-between lg:justify-end">
+                <div class="text-gray-600 text-sm font-medium whitespace-nowrap">
+                    Lọc: <span id="rowCount" class="text-blue-600 font-bold">0</span> KQ
+                </div>
+                
+                <div class="flex gap-2">
+                    <button onclick="showStatistics()" class="bg-green-50 hover:bg-green-100 text-green-600 px-3 py-2 rounded-lg text-sm font-medium border border-green-200 flex items-center gap-1 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        <span class="hidden sm:inline">Thống kê</span>
+                    </button>
+
+                    <button onclick="fetchData(true)" class="bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-2 rounded-lg text-sm font-medium border border-blue-200 flex items-center gap-1 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        <span class="hidden sm:inline">Làm mới</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trạng thái đang tải -->
+        <div id="loadingState" class="flex-1 flex flex-col items-center justify-center hidden">
+            <svg class="animate-spin h-10 w-10 text-blue-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <p class="text-gray-600 font-medium">Đang tải dữ liệu từ Google Sheets...</p>
+        </div>
+
+        <!-- Container Bảng -->
+        <div id="tableContainer" class="hidden flex-1 flex flex-col bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden min-h-0">
+            <div class="flex-1 overflow-auto table-scroll relative bg-white">
+                <table class="w-full whitespace-nowrap text-left border-collapse">
+                    <thead id="tableHead" class="bg-gray-100 text-gray-700 text-sm uppercase font-semibold"></thead>
+                    <tbody id="tableBody" class="text-gray-600 text-sm divide-y divide-gray-200"></tbody>
+                </table>
+                <div id="noDataState" class="hidden text-center py-20 text-gray-500 absolute inset-0 bg-white">
+                    Không tìm thấy học sinh nào phù hợp.
+                </div>
+            </div>
+
+            <!-- Thanh phân trang -->
+            <div class="flex-none bg-gray-50 px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+                <div class="text-sm text-gray-700">Trang <span id="pageInfo" class="font-bold">1/1</span></div>
+                <div class="flex gap-2">
+                    <button id="prevBtn" onclick="changePage(-1)" class="px-3 py-1 bg-white border border-gray-300 rounded text-sm hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">Trước</button>
+                    <button id="nextBtn" onclick="changePage(1)" class="px-3 py-1 bg-white border border-gray-300 rounded text-sm hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">Sau</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Thống Kê -->
+    <div id="statsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4 transition-opacity">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50">
+                <h3 class="font-bold text-lg text-gray-800 flex items-center gap-2">📊 Thống kê học sinh</h3>
+                <button onclick="closeStatistics()" class="text-gray-400 hover:text-gray-600 hover:bg-gray-200 p-1 rounded-full transition-colors"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+            <div class="p-5 flex-1 overflow-y-auto">
+                <div class="grid grid-cols-1 gap-4">
+                    <div class="bg-pink-50 p-4 rounded-lg border border-pink-100 flex justify-between items-center shadow-sm">
+                        <div><h4 class="font-bold text-pink-700 text-lg">Mầm non</h4><p class="text-xs text-pink-600 mt-1">(Mầm, Chồi, Lá)</p></div>
+                        <span id="statMamNon" class="text-3xl font-black text-pink-600">0</span>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 flex justify-between items-center shadow-sm">
+                        <div><h4 class="font-bold text-blue-700 text-lg">Tiểu học</h4><p class="text-xs text-blue-600 mt-1">(Lớp 1 đến lớp 5)</p></div>
+                        <span id="statTieuHoc" class="text-3xl font-black text-blue-600">0</span>
+                    </div>
+                    <div class="bg-emerald-50 p-4 rounded-lg border border-emerald-100 flex justify-between items-center shadow-sm">
+                        <div><h4 class="font-bold text-emerald-700 text-lg">Cấp 2 (THCS)</h4><p class="text-xs text-emerald-600 mt-1">(Lớp 6 đến lớp 9)</p></div>
+                        <span id="statCap2" class="text-3xl font-black text-emerald-600">0</span>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 flex justify-between items-center shadow-md mt-2">
+                        <h4 class="font-bold text-white text-lg">Tổng hệ thống</h4>
+                        <span id="statTong" class="text-3xl font-black text-yellow-400">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Chi Tiết Hồ Sơ Học Sinh -->
+    <div id="studentDetailsModal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[70] flex items-center justify-center p-2 sm:p-4 transition-opacity">
+        <div class="bg-gray-50 rounded-xl shadow-2xl w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden">
+            <!-- Header Modal -->
+            <div class="flex justify-between items-center p-4 bg-white border-b border-gray-200">
+                <div class="flex items-center gap-3">
+                    <div class="bg-blue-100 text-blue-600 p-2 rounded-full">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-xl text-gray-800" id="mdlName">Tên học sinh</h3>
+                        <p class="text-sm text-blue-600 font-semibold" id="mdlLop">Lớp: ---</p>
+                    </div>
+                </div>
+                <button onclick="closeStudentDetails()" class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1.5 rounded-full transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <!-- Body Modal -->
+            <div class="p-4 sm:p-6 flex-1 overflow-y-auto modal-scroll space-y-5">
+                
+                <!-- Cá nhân & Liên hệ Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Thông tin cá nhân -->
+                    <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                        <h4 class="font-bold text-gray-700 border-b pb-2 mb-3 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path></svg>
+                            Thông tin cơ bản
+                        </h4>
+                        <div class="space-y-2 text-sm" id="mdlPersonal"></div>
+                    </div>
+                    
+                    <!-- Thông tin liên hệ -->
+                    <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                        <h4 class="font-bold text-gray-700 border-b pb-2 mb-3 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            Liên lạc & Nơi ở
+                        </h4>
+                        <div class="space-y-2 text-sm" id="mdlContact"></div>
+                    </div>
+                </div>
+
+                <!-- Phụ huynh -->
+                <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                    <h4 class="font-bold text-gray-700 border-b pb-2 mb-3 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        Phụ huynh
+                    </h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm" id="mdlParents"></div>
+                </div>
+
+                <!-- Thành viên gia đình (Tự động nội suy) -->
+                <div class="bg-blue-50 p-4 rounded-lg shadow-sm border border-blue-100" id="mdlFamilySection">
+                    <h4 class="font-bold text-blue-800 border-b border-blue-200 pb-2 mb-3 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                        Thành viên cùng gia đình (Anh/chị/em ruột)
+                    </h4>
+                    <p class="text-xs text-blue-600 mb-3 italic">* Liên kết tự động dựa trên mức độ trùng khớp Tên và Năm sinh cha mẹ.</p>
+                    <ul class="space-y-2" id="mdlFamilyList">
+                        <!-- Danh sách anh chị em sẽ hiện ở đây -->
+                    </ul>
+                </div>
+                
+                <!-- Các thông tin khác -->
+                <div id="mdlOtherWrapper" class="bg-white p-4 rounded-lg shadow-sm border border-gray-100 hidden">
+                    <h4 class="font-bold text-gray-700 border-b pb-2 mb-3">Thông tin khác</h4>
+                    <div class="space-y-2 text-sm" id="mdlOther"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycby2ezXLR-tLo5OVVhdWcUCSaa9kidRPx3RUZEHmNvciw5-1WdLCFbUXsbvLucne8ahWvg/exec";
+        // Update Cache Key for new feature (_id generated)
+        const CACHE_KEY = "CSDL_HocSinh_3CapHoc_V3_Family"; 
+        
+        let allStudents = [];
+        let filteredStudents = [];
+        let tableKeys = [];
+        
+        let currentPage = 1;
+        const ITEMS_PER_PAGE = 50;
+
+        const loadingState = document.getElementById('loadingState');
+        const tableContainer = document.getElementById('tableContainer');
+        const tableHead = document.getElementById('tableHead');
+        const tableBody = document.getElementById('tableBody');
+        const searchInput = document.getElementById('searchInput');
+        const searchColumn = document.getElementById('searchColumn');
+        const rowCount = document.getElementById('rowCount');
+        const noDataState = document.getElementById('noDataState');
+        const pageInfo = document.getElementById('pageInfo');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        function processData(data) {
+            return data.map((item, index) => {
+                let newItem = {};
+                // Cấp ID ảo duy nhất cho mỗi học sinh để dễ dàng gọi Modal
+                newItem['_id'] = 'HS' + Date.now() + index;
+
+                for (let key of Object.keys(item)) {
+                    let cleanKey = key.trim(); 
+                    let keyLower = cleanKey.toLowerCase();
+                    
+                    if (keyLower === 'stt lớp' || keyLower === 'stt' || keyLower === '#') continue;
+                    
+                    if (cleanKey === 'Họ') {
+                        let ho = (item[key] || '').toString().trim();
+                        let ten = (item['Tên'] || item[' Tên '] || '').toString().trim();
+                        newItem['Họ và tên'] = (ho + ' ' + ten).trim();
+                    } else if (cleanKey === 'Tên') {
+                        continue;
+                    } else {
+                        let val = item[key];
+                        // Bù số 0
+                        if (cleanKey === 'SĐD cá nhân' || cleanKey === 'Di động' || cleanKey === 'Di động HS') {
+                            if (val !== null && val !== undefined && val !== '') {
+                                val = String(val).trim();
+                                if (!val.startsWith('0') && !isNaN(val)) val = '0' + val;
+                            }
+                        }
+                        // Format chuẩn ngày tháng
+                        if (typeof val === 'string' && val.match(/^\d{4}-\d{2}-\d{2}T/)) {
+                            let dateObj = new Date(val);
+                            if (!isNaN(dateObj)) val = dateObj.toLocaleDateString('vi-VN');
+                        }
+                        newItem[cleanKey] = val;
+                    }
+                }
+                return newItem;
+            });
+        }
+
+        async function fetchData(forceRefresh = false) {
+            loadingState.classList.remove('hidden');
+            tableContainer.classList.add('hidden');
+            
+            try {
+                if (!forceRefresh) {
+                    const cachedData = sessionStorage.getItem(CACHE_KEY);
+                    if (cachedData) {
+                        const parsedData = JSON.parse(cachedData);
+                        allStudents = parsedData.data;
+                        tableKeys = parsedData.keys;
+                        filteredStudents = [...allStudents];
+                        renderHeaders(); renderPage(1);
+                        loadingState.classList.add('hidden'); tableContainer.classList.remove('hidden');
+                        return;
+                    }
+                }
+
+                const response = await fetch(API_URL);
+                const result = await response.json();
+                
+                if (result.status === "success" && result.data.length > 0) {
+                    allStudents = processData(result.data);
+                    // Lọc ra các keys thực sự hiển thị (Loại bỏ _id)
+                    tableKeys = Object.keys(allStudents[0]).filter(k => k !== '_id');
+                    filteredStudents = [...allStudents];
+                    
+                    sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+                        data: allStudents, keys: tableKeys
+                    }));
+                    
+                    renderHeaders(); renderPage(1);
+                    loadingState.classList.add('hidden'); tableContainer.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Không thể đọc dữ liệu. Hãy kiểm tra kết nối mạng.");
+            }
+        }
+
+        function renderHeaders() {
+            let tr = document.createElement('tr');
+            let thSTT = document.createElement('th');
+            thSTT.className = "px-4 py-3 border-b border-gray-200 font-bold bg-gray-100 text-center sticky left-0 z-20 w-12";
+            thSTT.textContent = "#";
+            tr.appendChild(thSTT);
+
+            tableKeys.forEach(key => {
+                let th = document.createElement('th');
+                th.className = "px-4 py-3 border-b border-gray-200 tracking-wider font-bold bg-gray-100 whitespace-nowrap";
+                th.textContent = key;
+                tr.appendChild(th);
+            });
+            tableHead.innerHTML = ''; tableHead.appendChild(tr);
+        }
+
+        function changePage(direction) {
+            const totalPages = Math.ceil(filteredStudents.length / ITEMS_PER_PAGE);
+            let newPage = currentPage + direction;
+            if (newPage >= 1 && newPage <= totalPages) renderPage(newPage);
+        }
+
+        function renderPage(page) {
+            currentPage = page;
+            const totalItems = filteredStudents.length;
+            const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE) || 1;
+            tableBody.innerHTML = '';
+            
+            if (totalItems === 0) {
+                noDataState.classList.remove('hidden'); pageInfo.textContent = `0/0`;
+                prevBtn.disabled = true; nextBtn.disabled = true; rowCount.textContent = "0"; return;
+            } 
+            noDataState.classList.add('hidden');
+            const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+            const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalItems);
+            const dataToRender = filteredStudents.slice(startIndex, endIndex);
+
+            dataToRender.forEach((student, index) => {
+                let tr = document.createElement('tr');
+                tr.className = `hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`;
+
+                let tdSTT = document.createElement('td');
+                tdSTT.className = "px-4 py-2 border-b border-gray-100 text-center text-gray-500 text-xs font-bold sticky left-0 bg-inherit";
+                tdSTT.textContent = startIndex + index + 1;
+                tr.appendChild(tdSTT);
+
+                tableKeys.forEach(key => {
+                    let td = document.createElement('td');
+                    td.className = "px-4 py-2 border-b border-gray-100 whitespace-nowrap";
+                    let cellValue = student[key] || "";
+                    
+                    // NẾU LÀ CỘT HỌ VÀ TÊN -> BIẾN THÀNH NÚT BẤM
+                    if (key === 'Họ và tên') {
+                        let a = document.createElement('button');
+                        a.className = "text-blue-600 hover:text-blue-800 font-bold hover:underline cursor-pointer text-left focus:outline-none";
+                        a.textContent = cellValue;
+                        a.onclick = () => showStudentDetails(student._id);
+                        td.appendChild(a);
+                    } else {
+                        td.textContent = cellValue;
+                    }
+                    tr.appendChild(td);
+                });
+                tableBody.appendChild(tr);
+            });
+            
+            rowCount.textContent = totalItems;
+            pageInfo.textContent = `${currentPage}/${totalPages}`;
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+        }
+
+        function executeSearch() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const filterCol = searchColumn.value;
+
+            if (searchTerm === "") {
+                filteredStudents = [...allStudents];
+            } else {
+                filteredStudents = allStudents.filter(student => {
+                    if (filterCol === "all") {
+                        return tableKeys.some(key => {
+                            const val = student[key];
+                            return (val != null) && val.toString().toLowerCase().includes(searchTerm);
+                        });
+                    } else if (filterCol === "Họ và tên") {
+                        const nameHS = (student['Họ và tên'] || '').toString().toLowerCase();
+                        const nameCha = (student['Tên cha'] || '').toString().toLowerCase();
+                        const nameMe = (student['Tên mẹ'] || '').toString().toLowerCase();
+                        return nameHS.includes(searchTerm) || nameCha.includes(searchTerm) || nameMe.includes(searchTerm);
+                    } else {
+                        const val = student[filterCol];
+                        return (val != null) && val.toString().toLowerCase().includes(searchTerm);
+                    }
+                });
+            }
+            renderPage(1);
+        }
+
+        // ================== TÍNH NĂNG MODAL CHI TIẾT & GIA ĐÌNH ==================
+        function showStudentDetails(studentId) {
+            const student = allStudents.find(s => s._id === studentId);
+            if(!student) return;
+
+            document.getElementById('mdlName').textContent = student['Họ và tên'] || 'Chưa cập nhật';
+            document.getElementById('mdlLop').textContent = student['Lớp'] ? `Lớp: ${student['Lớp']}` : '';
+
+            // Phân loại các trường dữ liệu
+            const grpPersonal = ['Ngày/Tháng/Năm sinh', 'Giới tính', 'Dân tộc', 'Tôn giáo'];
+            const grpContact = ['Nơi ở', 'Xã', 'Di động', 'Di động HS', 'SĐD cá nhân'];
+            const grpParents = ['Tên cha', 'Năm sinh cha', 'Tên mẹ', 'Năm sinh mẹ'];
+            
+            // Render HTML Helper
+            const buildHtml = (keys) => keys.map(k => {
+                if(student[k]) return `<p><span class="text-gray-500 mr-2">${k}:</span><span class="font-medium text-gray-800">${student[k]}</span></p>`;
+                return '';
+            }).join('');
+
+            document.getElementById('mdlPersonal').innerHTML = buildHtml(grpPersonal) || '<p class="text-gray-400 italic">Không có dữ liệu</p>';
+            document.getElementById('mdlContact').innerHTML = buildHtml(grpContact) || '<p class="text-gray-400 italic">Không có dữ liệu</p>';
+            
+            // Xử lý Phụ huynh (tách 2 cột)
+            const htmlCha = `<p><span class="text-gray-500 mr-2">Tên cha:</span><span class="font-medium text-gray-800">${student['Tên cha'] || '---'}</span></p>
+                             <p><span class="text-gray-500 mr-2">Năm sinh:</span><span class="font-medium text-gray-800">${student['Năm sinh cha'] || '---'}</span></p>`;
+            const htmlMe = `<p><span class="text-gray-500 mr-2">Tên mẹ:</span><span class="font-medium text-gray-800">${student['Tên mẹ'] || '---'}</span></p>
+                            <p><span class="text-gray-500 mr-2">Năm sinh:</span><span class="font-medium text-gray-800">${student['Năm sinh mẹ'] || '---'}</span></p>`;
+            document.getElementById('mdlParents').innerHTML = `<div>${htmlCha}</div><div>${htmlMe}</div>`;
+
+            // THÔNG TIN KHÁC (Các cột còn lại chưa được liệt kê)
+            let otherKeys = tableKeys.filter(k => k !== 'Họ và tên' && k !== 'Lớp' && k !== 'STT KHỐI' && !grpPersonal.includes(k) && !grpContact.includes(k) && !grpParents.includes(k));
+            let htmlOther = buildHtml(otherKeys);
+            if(htmlOther) {
+                document.getElementById('mdlOther').innerHTML = htmlOther;
+                document.getElementById('mdlOtherWrapper').classList.remove('hidden');
+            } else {
+                document.getElementById('mdlOtherWrapper').classList.add('hidden');
+            }
+
+            // ================== LOGIC TÌM ANH CHỊ EM ==================
+            // Điều kiện: Có dữ liệu của ít nhất 1 phụ huynh (Cha hoặc Mẹ) có TÊN VÀ NĂM SINH
+            let fName = (student['Tên cha'] || '').toString().trim().toLowerCase();
+            let fYear = (student['Năm sinh cha'] || '').toString().trim();
+            let mName = (student['Tên mẹ'] || '').toString().trim().toLowerCase();
+            let mYear = (student['Năm sinh mẹ'] || '').toString().trim();
+
+            let hasFatherData = fName !== '' && fYear !== '';
+            let hasMotherData = mName !== '' && mYear !== '';
+
+            let siblings = [];
+
+            if (hasFatherData || hasMotherData) {
+                siblings = allStudents.filter(s => {
+                    if(s._id === student._id) return false; // Không tự so sánh với chính mình
+                    
+                    let sfName = (s['Tên cha'] || '').toString().trim().toLowerCase();
+                    let sfYear = (s['Năm sinh cha'] || '').toString().trim();
+                    let smName = (s['Tên mẹ'] || '').toString().trim().toLowerCase();
+                    let smYear = (s['Năm sinh mẹ'] || '').toString().trim();
+
+                    // Logic: Nếu bản ghi gốc có cha, cha phải trùng. Nếu bản ghi gốc có mẹ, mẹ phải trùng.
+                    let matchF = hasFatherData ? (fName === sfName && fYear === sfYear) : true;
+                    let matchM = hasMotherData ? (mName === smName && mYear === smYear) : true;
+
+                    // Nếu người này ko có dữ liệu cả cha lẫn mẹ để so -> fail
+                    if(sfName === '' && smName === '') return false;
+
+                    return matchF && matchM;
+                });
+            }
+
+            // Render Danh sách anh chị em
+            const listUI = document.getElementById('mdlFamilyList');
+            if(siblings.length > 0) {
+                listUI.innerHTML = siblings.map(sib => `
+                    <li class="bg-white border border-blue-100 rounded-md p-3 flex justify-between items-center shadow-sm hover:shadow transition-shadow">
+                        <div>
+                            <p class="font-bold text-gray-800">${sib['Họ và tên']}</p>
+                            <p class="text-xs text-gray-500">Lớp: <span class="font-medium text-gray-700">${sib['Lớp'] || '---'}</span> | Ngày sinh: ${sib['Ngày/Tháng/Năm sinh'] || '---'}</p>
+                        </div>
+                        <button onclick="showStudentDetails('${sib._id}')" class="text-blue-600 bg-blue-50 px-3 py-1.5 rounded-md text-sm font-medium hover:bg-blue-600 hover:text-white transition-colors border border-blue-200">Xem hồ sơ</button>
+                    </li>
+                `).join('');
+                document.getElementById('mdlFamilySection').classList.remove('hidden');
+            } else {
+                document.getElementById('mdlFamilySection').classList.add('hidden');
+            }
+
+            // Hiển thị Modal
+            document.getElementById('studentDetailsModal').classList.remove('hidden');
+        }
+
+        function closeStudentDetails() {
+            document.getElementById('studentDetailsModal').classList.add('hidden');
+        }
+
+        // ================== THỐNG KÊ ==================
+        function showStatistics() {
+            if (allStudents.length === 0) return;
+            let mNon = 0, tHoc = 0, cHai = 0, tong = allStudents.length;
+            allStudents.forEach(student => {
+                let lop = (student['Lớp'] || '').toString().toLowerCase().trim();
+                if (lop.includes('mầm') || lop.includes('chồi') || lop.includes('lá')) mNon++;
+                else if (/^[1-5]/.test(lop)) tHoc++;
+                else if (/^[6-9]/.test(lop)) cHai++;
+            });
+            document.getElementById('statMamNon').textContent = mNon;
+            document.getElementById('statTieuHoc').textContent = tHoc;
+            document.getElementById('statCap2').textContent = cHai;
+            document.getElementById('statTong').textContent = tong;
+            document.getElementById('statsModal').classList.remove('hidden');
+        }
+        function closeStatistics() { document.getElementById('statsModal').classList.add('hidden'); }
+
+        // Event Listeners
+        searchInput.addEventListener('input', executeSearch);
+        searchColumn.addEventListener('change', executeSearch);
+        
+        // Bấm nền đen để đóng Modal
+        document.getElementById('statsModal').addEventListener('click', function(e) { if (e.target === this) closeStatistics(); });
+        document.getElementById('studentDetailsModal').addEventListener('click', function(e) { if (e.target === this) closeStudentDetails(); });
+
+        window.addEventListener('DOMContentLoaded', () => fetchData(false));
+    </script>
+</body>
+</html>
