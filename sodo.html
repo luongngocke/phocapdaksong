@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống Đối chiếu Phổ cập Giáo dục - Đắk Song</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .tab-active { border-bottom: 3px solid #2563eb; color: #1d4ed8; font-weight: 600; background-color: #eff6ff; }
+        .tab-inactive { color: #64748b; font-weight: 500; border-bottom: 3px solid transparent; }
+        .tab-inactive:hover { color: #334155; background-color: #f8fafc; }
+        
+        .dropzone-hover { border-color: #3b82f6; background-color: #eff6ff; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <header class="bg-blue-700 text-white shadow-md relative z-10">
+        <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+            <h1 class="text-2xl font-bold flex items-center">
+                <i class="fa-solid fa-school-flag text-3xl mr-3 text-blue-200"></i>
+                Hệ thống Đối chiếu Dữ liệu Phổ cập Giáo dục - Đắk Song
+            </h1>
+            <p class="mt-2 text-blue-100 text-sm md:text-base max-w-3xl">
+                Công cụ hỗ trợ rà soát, so sánh chéo giữa bảng dữ liệu Dân cư (Phổ cập) và Cơ sở dữ liệu ngành Giáo dục. 
+                Giúp giáo viên nhanh chóng lọc ra danh sách học sinh cần đi điều tra thực tế. Mọi dữ liệu đều được xử lý cục bộ trên trình duyệt, an toàn và bảo mật.
+            </p>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 w-full space-y-8">
+        
+        <!-- Hướng dẫn nhanh -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start shadow-sm">
+            <i class="fa-solid fa-circle-info text-blue-600 mt-1 mr-3 text-lg"></i>
+            <div class="text-sm text-blue-900">
+                <strong class="block mb-1">Hướng dẫn các bước thực hiện:</strong>
+                <ol class="list-decimal pl-5 space-y-1">
+                    <li>Tải lên file Excel/CSV chứa <strong>Dữ liệu dân cư/phổ cập</strong> và file chứa <strong>Dữ liệu ngành</strong>.</li>
+                    <li>Xác nhận dòng tiêu đề (mặc định là dòng 1).</li>
+                    <li>Lựa chọn các cột tương ứng (Họ tên, CCCD) để hệ thống biết cách so sánh (Ưu tiên dò bằng CCCD).</li>
+                    <li>Bấm "Thực hiện đối chiếu" và chờ kết quả. Chuyển sang các Tab bên dưới để xem hoặc xuất Excel.</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Bước 1: Upload File -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Phổ Cập Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col h-full transition-shadow hover:shadow-md">
+                <h2 class="text-lg font-semibold text-slate-800 mb-4 pb-2 border-b border-slate-100 flex items-center">
+                    <i class="fa-solid fa-users text-blue-500 w-6"></i> 1. Dữ liệu Phổ cập (Dân cư)
+                </h2>
+                
+                <div class="mb-4 flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    <label for="pcgd-header-row" class="text-sm font-medium text-slate-700 cursor-pointer">Dòng chứa tiêu đề (Header):</label>
+                    <input type="number" id="pcgd-header-row" value="1" min="1" onchange="loadFileData('pcgd')" class="w-20 px-3 py-1.5 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-center">
+                </div>
+                
+                <div id="pcgd-dropzone" class="flex-grow border-2 border-dashed border-slate-300 rounded-lg p-6 flex flex-col justify-center items-center transition cursor-pointer hover:bg-blue-50 hover:border-blue-400 group" onclick="document.getElementById('pcgd-file').click()">
+                    <div class="bg-white p-3 rounded-full shadow-sm border border-slate-100 group-hover:scale-110 transition duration-300 mb-3">
+                        <i class="fa-solid fa-file-excel text-3xl text-emerald-500"></i>
+                    </div>
+                    <span class="text-sm font-medium text-slate-700 mb-1">Click để tải file lên</span>
+                    <span class="text-xs text-slate-400">Hỗ trợ định dạng: .xlsx, .xls, .csv</span>
+                    <input type="file" id="pcgd-file" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleFileSelect(event, 'pcgd')">
+                </div>
+                
+                <div id="pcgd-status" class="mt-4 text-sm font-medium text-slate-500 min-h-[20px] flex items-center">
+                    <!-- Status dynamic here -->
+                </div>
+            </div>
+            
+            <!-- CSDL Ngành Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col h-full transition-shadow hover:shadow-md">
+                <h2 class="text-lg font-semibold text-slate-800 mb-4 pb-2 border-b border-slate-100 flex items-center">
+                    <i class="fa-solid fa-graduation-cap text-indigo-500 w-6"></i> 2. CSDL Ngành (Chuẩn)
+                </h2>
+                
+                <div class="mb-4 flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    <label for="csdl-header-row" class="text-sm font-medium text-slate-700 cursor-pointer">Dòng chứa tiêu đề (Header):</label>
+                    <input type="number" id="csdl-header-row" value="1" min="1" onchange="loadFileData('csdl')" class="w-20 px-3 py-1.5 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm text-center">
+                </div>
+                
+                <div id="csdl-dropzone" class="flex-grow border-2 border-dashed border-slate-300 rounded-lg p-6 flex flex-col justify-center items-center transition cursor-pointer hover:bg-indigo-50 hover:border-indigo-400 group" onclick="document.getElementById('csdl-file').click()">
+                    <div class="bg-white p-3 rounded-full shadow-sm border border-slate-100 group-hover:scale-110 transition duration-300 mb-3">
+                        <i class="fa-solid fa-database text-3xl text-indigo-500"></i>
+                    </div>
+                    <span class="text-sm font-medium text-slate-700 mb-1">Click để tải file lên</span>
+                    <span class="text-xs text-slate-400">Hỗ trợ định dạng: .xlsx, .xls, .csv</span>
+                    <input type="file" id="csdl-file" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleFileSelect(event, 'csdl')">
+                </div>
+                
+                <div id="csdl-status" class="mt-4 text-sm font-medium text-slate-500 min-h-[20px] flex items-center">
+                     <!-- Status dynamic here -->
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Bước 2: Config Mapping -->
+        <div id="section-config" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-500 opacity-0 transform translate-y-4">
+            <div class="bg-slate-800 px-6 py-4 border-b border-slate-700">
+                <h2 class="text-lg font-semibold text-white flex items-center">
+                    <i class="fa-solid fa-link text-slate-300 mr-3"></i> Cấu hình Cột để So khớp
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Config File 1 -->
+                    <div class="bg-blue-50/50 p-5 rounded-xl border border-blue-100">
+                        <h3 class="font-semibold text-blue-800 mb-4 border-b border-blue-200 pb-2">Dữ liệu Phổ cập</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Cột "Họ và Tên" <span class="text-red-500">*</span></label>
+                                <select id="pcgd-name" class="block w-full pl-3 pr-10 py-2.5 text-sm border-slate-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 border bg-white"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Cột "CCCD / Mã định danh"</label>
+                                <select id="pcgd-cccd" class="block w-full pl-3 pr-10 py-2.5 text-sm border-slate-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 border bg-white"></select>
+                                <p class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-circle-info mr-1"></i>Độ chính xác cao nhất khi so khớp</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Cột "Ngày sinh"</label>
+                                <select id="pcgd-dob" class="block w-full pl-3 pr-10 py-2.5 text-sm border-slate-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 border bg-white"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Cột "Khối / Lớp" (Dùng để lọc)</label>
+                                <select id="pcgd-grade" class="block w-full pl-3 pr-10 py-2.5 text-sm border-slate-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 border bg-white"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Cột "Họ tên Cha/Mẹ" (Tùy chọn thêm)</label>
+                                <select id="pcgd-parent" class="block w-full pl-3 pr-10 py-2.5 text-sm border-slate-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 border bg-white"></select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Config File 2 -->
+                    <div class="bg-indigo-50/50 p-5 rounded-xl border border-indigo-100">
+                        <h3 class="font-semibold text-indigo-800 mb-4 border-b border-indigo-200 pb-2">Dữ liệu CSDL Ngành</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Cột "Họ và Tên" <span class="text-red-500">*</span></label>
+                                <select id="csdl-name" class="block w-full pl-3 pr-10 py-2.5 text-sm border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 border bg-white"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Cột "CCCD / Mã định danh"</label>
+                                <select id="csdl-cccd" class="block w-full pl-3 pr-10 py-2.5 text-sm border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 border bg-white"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Cột "Ngày sinh"</label>
+                                <select id="csdl-dob" class="block w-full pl-3 pr-10 py-2.5 text-sm border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 border bg-white"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Cột "Khối / Lớp" (Dùng để lọc)</label>
+                                <select id="csdl-grade" class="block w-full pl-3 pr-10 py-2.5 text-sm border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 border bg-white"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Cột "Họ tên Cha/Mẹ" (Tùy chọn thêm)</label>
+                                <select id="csdl-parent" class="block w-full pl-3 pr-10 py-2.5 text-sm border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 border bg-white"></select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8 flex justify-center">
+                    <button onclick="compareData()" class="px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-all transform hover:scale-105 flex items-center text-lg">
+                        <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Thực Hiện Đối Chiếu Dữ Liệu
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bước 3: Results -->
+        <div id="section-results" class="hidden space-y-6 opacity-0 transition-opacity duration-700">
+            
+            <!-- Summary Dashboard -->
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center text-center">
+                    <div class="text-xs text-slate-500 uppercase tracking-wider font-bold mb-1">Tổng Phổ Cập</div>
+                    <div class="text-2xl font-black text-blue-700" id="sum-pcgd">0</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center text-center">
+                    <div class="text-xs text-slate-500 uppercase tracking-wider font-bold mb-1">Tổng CSDL Ngành</div>
+                    <div class="text-2xl font-black text-indigo-700" id="sum-csdl">0</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border-t-4 border-t-green-500 shadow-sm flex flex-col justify-center text-center">
+                    <div class="text-xs text-slate-500 uppercase tracking-wider font-bold mb-1">Dữ Liệu Đã Khớp</div>
+                    <div class="text-2xl font-black text-green-600" id="sum-matched">0</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border-t-4 border-t-red-500 shadow-sm flex flex-col justify-center text-center relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="text-xs text-red-600 uppercase tracking-wider font-bold mb-1 relative z-10">Thiếu trong CSDL Ngành</div>
+                    <div class="text-2xl font-black text-red-600 relative z-10" id="sum-investigate">0</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border-t-4 border-t-amber-500 shadow-sm flex flex-col justify-center text-center relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-amber-50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="text-xs text-amber-600 uppercase tracking-wider font-bold mb-1 relative z-10">Thiếu trong Phổ cập</div>
+                    <div class="text-2xl font-black text-amber-600 relative z-10" id="sum-missing">0</div>
+                </div>
+            </div>
+            
+            <!-- Data Tabs and Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
+                
+                <!-- Tab Navigation -->
+                <div class="flex overflow-x-auto custom-scrollbar border-b border-slate-200 bg-white" role="tablist">
+                    <button onclick="switchTab('investigate')" id="tab-investigate" class="px-5 py-4 text-sm focus:outline-none whitespace-nowrap tab-active flex-1 sm:flex-none flex items-center justify-center transition-colors">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500 mr-2"></span>
+                        Thiếu trong CSDL Ngành (<span id="count-tab-inv">0</span>)
+                    </button>
+                    <button onclick="switchTab('missing')" id="tab-missing" class="px-5 py-4 text-sm focus:outline-none whitespace-nowrap tab-inactive flex-1 sm:flex-none flex items-center justify-center transition-colors">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500 mr-2"></span>
+                        Thiếu trong Phổ cập (<span id="count-tab-mis">0</span>)
+                    </button>
+                    <button onclick="switchTab('matched')" id="tab-matched" class="px-5 py-4 text-sm focus:outline-none whitespace-nowrap tab-inactive flex-1 sm:flex-none flex items-center justify-center transition-colors">
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500 mr-2"></span>
+                        Danh sách Khớp (<span id="count-tab-mat">0</span>)
+                    </button>
+                    <button onclick="switchTab('duplicate')" id="tab-duplicate" class="px-5 py-4 text-sm focus:outline-none whitespace-nowrap tab-inactive flex-1 sm:flex-none flex items-center justify-center transition-colors border-l border-slate-200 bg-purple-50">
+                        <span class="w-2.5 h-2.5 rounded-full bg-purple-500 mr-2"></span>
+                        Trùng CCCD Lỗi (<span id="count-tab-dup">0</span>)
+                    </button>
+                </div>
+                
+                <!-- Table Toolbar -->
+                <div class="p-4 flex flex-col xl:flex-row justify-between items-center bg-slate-50 border-b border-slate-100 gap-4">
+                    <div class="flex flex-col sm:flex-row w-full xl:w-1/2 gap-3">
+                        <div class="relative flex-grow">
+                            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                <i class="fa-solid fa-search text-slate-400"></i>
+                            </div>
+                            <input type="text" id="search-input" oninput="handleSearch(this.value)" class="bg-white border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2" placeholder="Tìm tên, lớp, thôn xóm, cccd...">
+                        </div>
+                        <div class="flex items-center space-x-2 shrink-0">
+                            <label class="text-sm text-slate-600 font-medium whitespace-nowrap"><i class="fa-solid fa-filter text-slate-400 mr-1"></i>Độ tuổi:</label>
+                            <select id="filter-year" onchange="handleYearFilter(this.value)" class="bg-white border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 min-w-[130px]">
+                                <option value="">Tất cả năm sinh</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Bộ lọc Khối Lớp (Cho phép chọn nhiều) -->
+                        <div class="flex items-center space-x-2 shrink-0">
+                            <label class="text-sm text-slate-600 font-medium whitespace-nowrap"><i class="fa-solid fa-layer-group text-slate-400 mr-1"></i>Khối/Lớp:</label>
+                            <div class="relative">
+                                <button id="grade-filter-btn" onclick="toggleGradeFilterDropdown()" class="bg-white border border-slate-300 text-slate-700 text-sm rounded-md px-3 py-2 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between min-w-[140px] transition-colors" disabled>
+                                    <span id="grade-filter-btn-text" class="truncate max-w-[100px]">Tất cả khối/lớp</span>
+                                    <i class="fa-solid fa-caret-down ml-2 text-slate-400"></i>
+                                </button>
+                                <!-- Danh sách Checkbox chọn nhiều -->
+                                <div id="grade-filter-dropdown" class="hidden absolute right-0 mt-1 w-64 bg-white border border-slate-200 rounded-lg shadow-xl z-50 max-h-72 flex flex-col">
+                                    <div class="p-2.5 bg-slate-50 border-b border-slate-200 flex justify-between items-center rounded-t-lg">
+                                        <span class="text-xs font-bold text-slate-600 uppercase tracking-wider">Chọn Khối/Lớp</span>
+                                        <button onclick="clearGradeFilter()" class="text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors">Bỏ chọn hết</button>
+                                    </div>
+                                    <div id="grade-filter-checkboxes" class="p-2 overflow-y-auto custom-scrollbar flex-grow space-y-1">
+                                        <!-- Javascript sẽ nạp checkbox vào đây -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Bộ lọc tùy chọn nâng cao (Cột & Nhiều giá trị) -->
+                        <div class="flex items-center space-x-1 sm:space-x-2 shrink-0 bg-slate-100 p-1 rounded-lg border border-slate-200">
+                            <select id="adv-filter-col" onchange="onAdvFilterColChange(this.value)" class="bg-white border border-slate-300 text-slate-700 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-1.5 w-32 sm:w-[140px] truncate">
+                                <option value="">-- Cột tùy chọn --</option>
+                            </select>
+                            <div class="relative">
+                                <button id="adv-filter-btn" onclick="toggleAdvFilterDropdown()" class="bg-white border border-slate-300 text-slate-700 text-sm rounded-md px-3 py-1.5 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between min-w-[120px] transition-colors" disabled>
+                                    <span id="adv-filter-btn-text" class="truncate max-w-[90px]">Chọn giá trị</span>
+                                    <i class="fa-solid fa-caret-down ml-2 text-slate-400"></i>
+                                </button>
+                                <!-- Danh sách Checkbox chọn nhiều -->
+                                <div id="adv-filter-dropdown" class="hidden absolute right-0 mt-1 w-64 bg-white border border-slate-200 rounded-lg shadow-xl z-50 max-h-72 flex flex-col">
+                                    <div class="p-2.5 bg-slate-50 border-b border-slate-200 flex justify-between items-center rounded-t-lg">
+                                        <span class="text-xs font-bold text-slate-600 uppercase tracking-wider">Chọn một hoặc nhiều</span>
+                                        <button onclick="clearAdvFilter()" class="text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors">Bỏ chọn hết</button>
+                                    </div>
+                                    <div id="adv-filter-checkboxes" class="p-2 overflow-y-auto custom-scrollbar flex-grow space-y-1">
+                                        <!-- Javascript sẽ nạp checkbox vào đây -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4 w-full xl:w-auto justify-end mt-4 xl:mt-0">
+                        <div class="text-sm font-medium text-slate-600 bg-white px-3 py-1.5 rounded border border-slate-200 shadow-sm whitespace-nowrap" id="table-info">
+                            Đang chờ dữ liệu...
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="flex rounded-md shadow-sm">
+                                <button onclick="prevPage()" class="px-3 py-1.5 bg-white border border-slate-300 rounded-l-md hover:bg-slate-50 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition" id="btn-prev">
+                                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                                </button>
+                                <button onclick="nextPage()" class="px-3 py-1.5 bg-white border-y border-r border-slate-300 rounded-r-md hover:bg-slate-50 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition" id="btn-next">
+                                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                                </button>
+                            </div>
+                            <button onclick="exportCurrentTab()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md shadow-sm text-sm font-medium flex items-center transition-colors whitespace-nowrap">
+                                <i class="fa-solid fa-file-excel mr-2"></i> Xuất Excel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Table Container -->
+                <div class="overflow-x-auto custom-scrollbar relative min-h-[300px]">
+                    <table class="w-full text-left border-collapse" id="data-table">
+                        <thead class="bg-slate-100 text-slate-700 text-sm border-b border-slate-200" id="table-head">
+                            <!-- JS generates header -->
+                        </thead>
+                        <tbody class="text-sm text-slate-600 divide-y divide-slate-100 bg-white" id="table-body">
+                            <!-- JS generates rows -->
+                        </tbody>
+                    </table>
+                </div>
+                
+            </div>
+            
+        </div>
+
+    </main>
+
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none"></div>
+
+    <footer class="mt-auto py-6 border-t border-slate-200 bg-white text-center text-slate-500 text-sm">
+        <p>Phát triển cho công tác phổ cập giáo dục &bull; Chạy 100% trên trình duyệt, không lưu trữ dữ liệu lên mạng.</p>
+    </footer>
+
+    <script>
+        // State management
+        let fileBuffers = { pcgd: null, csdl: null };
+        
+        let pcgdData = []; 
+        let csdlData = []; 
+        let pcgdHeaders = [];
+        let csdlHeaders = [];
+
+        // Result sets
+        let resultNeedInvestigate = []; // Có trong Phổ cập, Không trong Ngành
+        let resultMissingPcgd = [];     // Có trong Ngành, Không trong Phổ cập
+        let resultMatched = [];         // Khớp
+        let resultDuplicate = [];       // Dữ liệu bị nhập lặp CCCD
+        
+        // Pagination & Tabs
+        let currentTab = 'investigate'; 
+        let currentPage = 1;
+        const rowsPerPage = 50;
+        let currentSearchTerm = "";
+        let currentYearFilter = "";
+        let currentGradeFilterValues = new Set(); // Đã chuyển sang dạng Set để lưu nhiều giá trị
+
+        // State cho bộ lọc nâng cao
+        let currentAdvFilterCol = "";
+        let currentAdvFilterValues = new Set();
+
+        // Ẩn dropdown khi click ra ngoài
+        window.addEventListener('click', function(e) {
+            const advDropdown = document.getElementById('adv-filter-dropdown');
+            const advBtn = document.getElementById('adv-filter-btn');
+            if (advDropdown && !advDropdown.contains(e.target) && !advBtn.contains(e.target)) {
+                advDropdown.classList.add('hidden');
+            }
+
+            const gradeDropdown = document.getElementById('grade-filter-dropdown');
+            const gradeBtn = document.getElementById('grade-filter-btn');
+            if (gradeDropdown && !gradeDropdown.contains(e.target) && !gradeBtn.contains(e.target)) {
+                gradeDropdown.classList.add('hidden');
+            }
+        });
+
+        // Nạp danh sách các cột vào dropdown
+        function populateAdvFilterCols() {
+            const select = document.getElementById('adv-filter-col');
+            let options = '<option value="">-- Cột tùy chọn --</option>';
+            
+            let headers = [];
+            if (currentTab === 'investigate') headers = pcgdHeaders;
+            else if (currentTab === 'missing') headers = csdlHeaders;
+            else {
+                pcgdHeaders.forEach(h => headers.push(`[PCGD] ${h}`));
+                csdlHeaders.forEach(h => headers.push(`[Ngành] ${h}`));
+            }
+
+            headers.forEach(h => {
+                options += `<option value="${h}">${h}</option>`;
+            });
+            
+            select.innerHTML = options;
+            
+            // Đặt lại state lọc
+            currentAdvFilterCol = "";
+            currentAdvFilterValues.clear();
+            document.getElementById('adv-filter-btn').disabled = true;
+            document.getElementById('adv-filter-btn-text').innerText = "Chọn giá trị";
+            document.getElementById('adv-filter-dropdown').classList.add('hidden');
+        }
+
+        function onAdvFilterColChange(colName) {
+            currentAdvFilterCol = colName;
+            currentAdvFilterValues.clear();
+            const btn = document.getElementById('adv-filter-btn');
+            
+            if (!colName) {
+                btn.disabled = true;
+                document.getElementById('adv-filter-btn-text').innerText = "Chọn giá trị";
+                renderTable();
+                return;
+            }
+
+            btn.disabled = false;
+            document.getElementById('adv-filter-btn-text').innerText = "Chọn (0)";
+            
+            // Quét dữ liệu để lấy các giá trị duy nhất trong cột đã chọn
+            let uniqueVals = new Set();
+            let dataset = [];
+            if (currentTab === 'investigate') dataset = resultNeedInvestigate;
+            else if (currentTab === 'missing') dataset = resultMissingPcgd;
+            else dataset = resultMatched;
+
+            dataset.forEach(row => {
+                let val = "";
+                if (currentTab === 'matched') {
+                    if (colName.startsWith('[PCGD] ')) val = row.pcgd[colName.replace('[PCGD] ', '')];
+                    else if (colName.startsWith('[Ngành] ')) val = row.csdl[colName.replace('[Ngành] ', '')];
+                } else {
+                    val = row[colName];
+                }
+                val = (val !== undefined && val !== null) ? String(val).trim() : "";
+                uniqueVals.add(val);
+            });
+
+            // Render các ô Checkbox cho từng giá trị
+            const container = document.getElementById('adv-filter-checkboxes');
+            let html = '';
+            
+            let sortedVals = Array.from(uniqueVals).sort((a,b) => a.localeCompare(b));
+            
+            sortedVals.forEach(val => {
+                const displayVal = val === "" ? "(Để trống)" : val;
+                const safeVal = val.replace(/"/g, '&quot;');
+                html += `
+                    <label class="flex items-start space-x-3 p-2 hover:bg-blue-50 rounded-md cursor-pointer transition-colors border border-transparent hover:border-blue-100">
+                        <input type="checkbox" value="${safeVal}" onchange="onAdvFilterCheckboxChange(this.value, this.checked)" class="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer">
+                        <span class="text-sm font-medium text-slate-700 leading-snug break-words flex-grow">${displayVal}</span>
+                    </label>
+                `;
+            });
+            
+            container.innerHTML = html;
+            // Tự động mở menu cho user
+            document.getElementById('adv-filter-dropdown').classList.remove('hidden');
+            renderTable();
+        }
+
+        function toggleAdvFilterDropdown() {
+            document.getElementById('adv-filter-dropdown').classList.toggle('hidden');
+        }
+
+        function onAdvFilterCheckboxChange(val, isChecked) {
+            if (isChecked) currentAdvFilterValues.add(val);
+            else currentAdvFilterValues.delete(val);
+            
+            const btnText = currentAdvFilterValues.size > 0 
+                ? `Đã chọn (${currentAdvFilterValues.size})` 
+                : "Chọn giá trị";
+            document.getElementById('adv-filter-btn-text').innerText = btnText;
+            
+            currentPage = 1;
+            renderTable();
+        }
+
+        function clearAdvFilter() {
+            currentAdvFilterValues.clear();
+            const checkboxes = document.querySelectorAll('#adv-filter-checkboxes input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = false);
+            document.getElementById('adv-filter-btn-text').innerText = "Chọn giá trị";
+            currentPage = 1;
+            renderTable();
+        }
+
+        function handleYearFilter(val) {
+            currentYearFilter = val;
+            currentPage = 1;
+            renderTable();
+        }
+        
+        function toggleGradeFilterDropdown() {
+            document.getElementById('grade-filter-dropdown').classList.toggle('hidden');
+        }
+
+        function onGradeFilterCheckboxChange(val, isChecked) {
+            if (isChecked) currentGradeFilterValues.add(val);
+            else currentGradeFilterValues.delete(val);
+            
+            const btnText = currentGradeFilterValues.size > 0 
+                ? `Đã chọn (${currentGradeFilterValues.size})` 
+                : "Tất cả khối/lớp";
+            document.getElementById('grade-filter-btn-text').innerText = btnText;
+            
+            currentPage = 1;
+            renderTable();
+        }
+
+        function clearGradeFilter() {
+            currentGradeFilterValues.clear();
+            const checkboxes = document.querySelectorAll('#grade-filter-checkboxes input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = false);
+            document.getElementById('grade-filter-btn-text').innerText = "Tất cả khối/lớp";
+            currentPage = 1;
+            renderTable();
+        }
+
+        function extractYear(dateStr) {
+            if (!dateStr) return null;
+            let str = String(dateStr);
+            // Tìm cụm 4 chữ số đại diện cho năm sinh (VD: 19xx hoặc 20xx)
+            let match = str.match(/\b(19\d{2}|20\d{2})\b/);
+            if (match) return match[1];
+            return null;
+        }
+
+        function populateYearFilter() {
+            const f1Dob = document.getElementById('pcgd-dob').value;
+            const f2Dob = document.getElementById('csdl-dob').value;
+            
+            let years = new Set();
+            
+            if (f1Dob) {
+                pcgdData.forEach(row => {
+                    let y = extractYear(row[f1Dob]);
+                    if (y) years.add(y);
+                });
+            }
+            if (f2Dob) {
+                csdlData.forEach(row => {
+                    let y = extractYear(row[f2Dob]);
+                    if (y) years.add(y);
+                });
+            }
+            
+            const select = document.getElementById('filter-year');
+            let options = '<option value="">Tất cả năm sinh</option>';
+            
+            Array.from(years).sort((a,b) => b - a).forEach(y => {
+                options += `<option value="${y}">Sinh năm ${y}</option>`;
+            });
+            
+            select.innerHTML = options;
+        }
+
+        function populateGradeFilter() {
+            const container = document.getElementById('grade-filter-checkboxes');
+            const btn = document.getElementById('grade-filter-btn');
+            const btnText = document.getElementById('grade-filter-btn-text');
+            
+            let html = '';
+            let fGrade = "";
+            let dataToScan = [];
+            
+            if (currentTab === 'investigate') {
+                fGrade = document.getElementById('pcgd-grade').value;
+                dataToScan = resultNeedInvestigate;
+            } else if (currentTab === 'missing') {
+                fGrade = document.getElementById('csdl-grade').value;
+                dataToScan = resultMissingPcgd;
+            } else {
+                 // Cho tab matched, dùng 1 trong 2 cột khối lớp (nếu có)
+                 fGrade = document.getElementById('pcgd-grade').value || document.getElementById('csdl-grade').value;
+                 dataToScan = resultMatched;
+            }
+
+            if (fGrade) {
+                let uniqueGrades = new Set();
+                dataToScan.forEach(row => {
+                    let val = "";
+                    if(currentTab === 'matched'){
+                        const f1Grade = document.getElementById('pcgd-grade').value;
+                        const f2Grade = document.getElementById('csdl-grade').value;
+                        val = (f1Grade && row.pcgd[f1Grade]) ? row.pcgd[f1Grade] : (f2Grade ? row.csdl[f2Grade] : "");
+                    } else {
+                        val = row[fGrade];
+                    }
+                    
+                    if (val !== undefined && val !== null && String(val).trim() !== "") {
+                        uniqueGrades.add(String(val).trim());
+                    }
+                });
+
+                Array.from(uniqueGrades).sort((a, b) => a.localeCompare(b, undefined, {numeric: true})).forEach(g => {
+                    const safeVal = g.replace(/"/g, '&quot;');
+                    html += `
+                        <label class="flex items-start space-x-3 p-2 hover:bg-blue-50 rounded-md cursor-pointer transition-colors border border-transparent hover:border-blue-100">
+                            <input type="checkbox" value="${safeVal}" onchange="onGradeFilterCheckboxChange(this.value, this.checked)" class="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer">
+                            <span class="text-sm font-medium text-slate-700 leading-snug break-words flex-grow">${g}</span>
+                        </label>
+                    `;
+                });
+                btn.disabled = false;
+            } else {
+                html = '<div class="p-2 text-sm text-slate-500 italic text-center py-4">Chưa chọn cột Khối/Lớp ở Bước 2</div>';
+                btn.disabled = true;
+            }
+
+            container.innerHTML = html;
+            
+            // Reset state khi đổi tab
+            currentGradeFilterValues.clear();
+            btnText.innerText = "Tất cả khối/lớp";
+            document.getElementById('grade-filter-dropdown').classList.add('hidden');
+        }
+
+        // Custom Toast Notification System
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-blue-600';
+            let iconClass = 'fa-info-circle';
+            
+            if (type === 'error') { bgClass = 'bg-rose-600'; iconClass = 'fa-circle-exclamation'; }
+            else if (type === 'success') { bgClass = 'bg-emerald-600'; iconClass = 'fa-circle-check'; }
+            else if (type === 'warning') { bgClass = 'bg-amber-500'; iconClass = 'fa-triangle-exclamation'; }
+
+            toast.className = `${bgClass} text-white px-5 py-3 rounded-lg shadow-xl flex items-center gap-3 transition-all duration-300 transform translate-y-12 opacity-0 pointer-events-auto max-w-sm`;
+            toast.innerHTML = `<i class="fa-solid ${iconClass} text-lg"></i> <span class="font-medium text-sm">${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            // Trigger animation
+            setTimeout(() => {
+                toast.classList.remove('translate-y-12', 'opacity-0');
+            }, 10);
+            
+            // Auto remove
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function handleFileSelect(event, type) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const statusEl = document.getElementById(`${type}-status`);
+            statusEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-blue-500 mr-2"></i> Đang đọc file ${file.name}...`;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                fileBuffers[type] = new Uint8Array(e.target.result);
+                loadFileData(type);
+                // Reset value so we can re-upload same file if needed
+                event.target.value = '';
+            };
+            reader.onerror = () => {
+                showToast(`Lỗi khi đọc file ${file.name}`, 'error');
+                statusEl.innerHTML = `<i class="fa-solid fa-circle-xmark text-red-500 mr-2"></i> Lỗi đọc file.`;
+            }
+            reader.readAsArrayBuffer(file);
+        }
+
+        function loadFileData(type) {
+            if (!fileBuffers[type]) return;
+            
+            const statusEl = document.getElementById(`${type}-status`);
+            
+            try {
+                const headerRowInput = document.getElementById(`${type}-header-row`).value;
+                const headerRow = parseInt(headerRowInput, 10);
+                
+                if (isNaN(headerRow) || headerRow < 1) {
+                    throw new Error("Dòng tiêu đề phải là số lớn hơn 0");
+                }
+
+                const { data, headers } = processExcelBuffer(fileBuffers[type], headerRow);
+                
+                if (type === 'pcgd') {
+                    pcgdData = data;
+                    pcgdHeaders = headers;
+                    renderSelects('pcgd', headers);
+                } else {
+                    csdlData = data;
+                    csdlHeaders = headers;
+                    renderSelects('csdl', headers);
+                }
+                
+                statusEl.innerHTML = `<i class="fa-solid fa-circle-check text-green-500 mr-2"></i> Đã nạp thành công <strong>${data.length.toLocaleString()}</strong> dòng.`;
+                statusEl.classList.add('text-green-600');
+                
+                checkReadyToCompare();
+            } catch (error) {
+                console.error(error);
+                statusEl.innerHTML = `<i class="fa-solid fa-circle-exclamation text-red-500 mr-2"></i> Lỗi: ${error.message}`;
+                showToast(`Lỗi xử lý file: ${error.message}`, 'error');
+            }
+        }
+
+        function processExcelBuffer(buffer, headerRow = 1) {
+            // Read with cell dates and date format string to avoid raw excel numbers for dates
+            const workbook = XLSX.read(buffer, {type: 'array', cellDates: true, dateNF: 'dd/mm/yyyy'});
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            
+            const ref = worksheet['!ref'];
+            if (!ref) throw new Error("Sheet trống hoặc không hợp lệ!");
+            
+            const range = XLSX.utils.decode_range(ref);
+            
+            const headerIndex = headerRow - 1;
+            if (headerIndex < range.s.r || headerIndex > range.e.r) {
+                throw new Error(`Dòng tiêu đề (${headerRow}) vượt quá giới hạn dữ liệu.`);
+            }
+            range.s.r = headerIndex; 
+            
+            // Trích xuất headers thủ công để xử lý trùng lặp và loại bỏ cột rỗng
+            let headers = [];
+            for(let C = range.s.c; C <= range.e.c; ++C) {
+                const cellAddress = {c: C, r: range.s.r};
+                const cell = worksheet[XLSX.utils.encode_cell(cellAddress)];
+                
+                let hdr = `Cột_không_tên_${C + 1}`; 
+                if (cell && cell.v !== undefined && cell.v !== null) {
+                    hdr = String(cell.w || cell.v).trim();
+                }
+                
+                // Tránh trùng lặp tên cột
+                let origHdr = hdr;
+                let counter = 1;
+                while(headers.includes(hdr)) {
+                    hdr = `${origHdr} (${counter})`;
+                    counter++;
+                }
+                headers.push(hdr);
+            }
+
+            // Lấy data dạng object JSON (bỏ qua dòng tiêu đề)
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+                range: range.s.r,
+                defval: "",   // Ô trống trả về ""
+                raw: false    // Giữ định dạng chuỗi (quan trọng để số 0 đầu CCCD không bị mất)
+            });
+
+            return { data: jsonData, headers: headers };
+        }
+
+        function renderSelects(type, headers) {
+            const configs = [
+                { id: `${type}-name`, kw: ["họ và tên", "họ tên", "tên học sinh", "tên hs", "name", "họ đệm"] },
+                { id: `${type}-cccd`, kw: ["cccd", "cmnd", "định danh", "mã định danh", "mã hs", "mã học sinh", "id"] },
+                { id: `${type}-dob`, kw: ["ngày sinh", "sinh ngày", "năm sinh", "dob", "ns"] },
+                { id: `${type}-grade`, kw: ["khối", "lớp", "khối học", "mã lớp", "lớp học"] },
+                { id: `${type}-parent`, kw: ["họ tên cha", "họ tên mẹ", "họ tên bố", "cha", "mẹ", "bố", "phụ huynh", "người giám hộ"] }
+            ];
+
+            configs.forEach(cfg => {
+                const el = document.getElementById(cfg.id);
+                const isRequired = cfg.id.includes('name');
+                
+                let options = isRequired ? '' : '<option value="">-- Bỏ qua / Không có --</option>';
+                headers.forEach(h => {
+                    options += `<option value="${h}">${h}</option>`;
+                });
+                el.innerHTML = options;
+                
+                // Tự động nhận diện (Auto-select)
+                let found = false;
+                for (let i = 0; i < headers.length; i++) {
+                    const hLow = headers[i].toLowerCase();
+                    for (let kw of cfg.kw) {
+                        if (hLow.includes(kw)) {
+                            el.value = headers[i];
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found) break;
+                }
+            });
+        }
+
+        function checkReadyToCompare() {
+            if (pcgdData.length > 0 && csdlData.length > 0) {
+                const configSection = document.getElementById('section-config');
+                configSection.classList.remove('hidden');
+                // Allow browser to render display block before animating opacity
+                setTimeout(() => {
+                    configSection.classList.remove('opacity-0', 'translate-y-4');
+                }, 50);
+                
+                showToast("Dữ liệu đã sẵn sàng. Vui lòng kiểm tra các cột cấu hình và bấm Đối chiếu.", "success");
+                
+                // Scroll to config
+                configSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        // Normalize string for fuzzy comparison
+        function normalizeStr(str) {
+            if (!str) return "";
+            return String(str).trim().toLowerCase().replace(/\s+/g, ' '); 
+        }
+
+        // Khử toàn bộ dấu câu, ký tự đặc biệt (giải quyết triệt để lỗi "Y-Linh", "Y'Linh", "Y Linh")
+        function normalizeName(str) {
+            if (!str) return "";
+            return String(str).toLowerCase()
+                // Thay thế các ký tự không phải chữ cái/số bằng khoảng trắng
+                .replace(/[^a-z0-9\sàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/g, ' ')
+                // Thu gọn nhiều khoảng trắng thành 1
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+        
+        // Specifically for ID numbers, remove any whitespace
+        function normalizeID(str) {
+            if (!str) return "";
+            return String(str).replace(/\s+/g, '').trim(); 
+        }
+
+        function compareData() {
+            const f1Name = document.getElementById('pcgd-name').value;
+            const f1Cccd = document.getElementById('pcgd-cccd').value;
+            const f1Dob = document.getElementById('pcgd-dob').value;
+            const f1Parent = document.getElementById('pcgd-parent').value;
+            
+            const f2Name = document.getElementById('csdl-name').value;
+            const f2Cccd = document.getElementById('csdl-cccd').value;
+            const f2Dob = document.getElementById('csdl-dob').value;
+            const f2Parent = document.getElementById('csdl-parent').value;
+
+            if (!f1Name || !f2Name) {
+                showToast("Vui lòng chọn Cột 'Họ và Tên' cho cả 2 bộ dữ liệu!", "error");
+                return;
+            }
+            
+            showToast("Đang xử lý thuật toán đối chiếu...", "info");
+            
+            setTimeout(() => {
+                try {
+                    executeMatchAlgorithm(f1Name, f1Cccd, f1Dob, f1Parent, f2Name, f2Cccd, f2Dob, f2Parent);
+                } catch(e) {
+                    showToast("Lỗi khi đối chiếu: " + e.message, "error");
+                }
+            }, 100);
+        }
+
+        function executeMatchAlgorithm(f1Name, f1Cccd, f1Dob, f1Parent, f2Name, f2Cccd, f2Dob, f2Parent) {
+            resultMatched = [];
+            resultNeedInvestigate = [];
+            resultMissingPcgd = [];
+            resultDuplicate = [];
+
+            // 1. Quét tìm CCCD trùng lặp nội bộ trong từng file
+            const countPcgdCccd = new Map();
+            const countCsdlCccd = new Map();
+            
+            pcgdData.forEach(row => {
+                let cccd = f1Cccd ? normalizeID(row[f1Cccd]) : "";
+                if (cccd) countPcgdCccd.set(cccd, (countPcgdCccd.get(cccd) || 0) + 1);
+            });
+            
+            csdlData.forEach(row => {
+                let cccd = f2Cccd ? normalizeID(row[f2Cccd]) : "";
+                if (cccd) countCsdlCccd.set(cccd, (countCsdlCccd.get(cccd) || 0) + 1);
+            });
+
+            // Tách riêng danh sách CCCD bị trùng trong từng file
+            const dupPcgdCccds = new Set();
+            countPcgdCccd.forEach((count, cccd) => { if (count > 1) dupPcgdCccds.add(cccd); });
+            
+            const dupCsdlCccds = new Set();
+            countCsdlCccd.forEach((count, cccd) => { if (count > 1) dupCsdlCccds.add(cccd); });
+
+            // 2. Cách ly dữ liệu trùng lặp ra khỏi mảng sạch
+            const validPcgdData = [];
+            pcgdData.forEach(row => {
+                let cccd = f1Cccd ? normalizeID(row[f1Cccd]) : "";
+                // Chỉ đưa vào danh sách lỗi nếu CCCD này trùng lặp TRONG CÙNG file Phổ cập
+                if (cccd && dupPcgdCccds.has(cccd)) {
+                    resultDuplicate.push({ source: 'Dân cư (Phổ cập)', cccd: cccd, name: row[f1Name] || '', dob: row[f1Dob] || '', original: row });
+                } else {
+                    validPcgdData.push(row);
+                }
+            });
+
+            const validCsdlData = [];
+            csdlData.forEach((row, index) => {
+                let cccd = f2Cccd ? normalizeID(row[f2Cccd]) : "";
+                // Chỉ đưa vào danh sách lỗi nếu CCCD này trùng lặp TRONG CÙNG file CSDL Ngành
+                if (cccd && dupCsdlCccds.has(cccd)) {
+                    resultDuplicate.push({ source: 'CSDL Ngành', cccd: cccd, name: row[f2Name] || '', dob: row[f2Dob] || '', original: row });
+                } else {
+                    row._sys_idx = index; // Chỉ đánh index cho dữ liệu sạch
+                    validCsdlData.push(row);
+                }
+            });
+
+            // Sắp xếp dữ liệu lỗi theo Nguồn file rồi mới đến CCCD để dễ nhìn
+            resultDuplicate.sort((a, b) => {
+                if (a.source !== b.source) {
+                    return a.source.localeCompare(b.source);
+                }
+                return a.cccd.localeCompare(b.cccd);
+            });
+
+            // Bước 3: Lập chỉ mục (Index) CSDL Ngành (CHỈ DÙNG DỮ LIỆU SẠCH)
+            const csdlByCccd = new Map();
+            const csdlByNameDob = new Map();
+            const csdlByNameParent = new Map();
+
+            validCsdlData.forEach((row) => {
+                let cccd = f2Cccd ? normalizeID(row[f2Cccd]) : "";
+                let name = normalizeName(row[f2Name]);
+                let dob = f2Dob ? normalizeStr(row[f2Dob]) : "";
+                let parent = f2Parent ? normalizeName(row[f2Parent]) : "";
+                
+                if (cccd) csdlByCccd.set(cccd, row);
+                
+                if (name && dob) {
+                    let key = name + '|' + dob;
+                    if (!csdlByNameDob.has(key)) csdlByNameDob.set(key, []);
+                    csdlByNameDob.get(key).push(row);
+                }
+
+                if (name && parent) {
+                    let key = name + '|' + parent;
+                    if (!csdlByNameParent.has(key)) csdlByNameParent.set(key, []);
+                    csdlByNameParent.get(key).push(row);
+                }
+            });
+
+            let matchedCsdlIndices = new Set();
+
+            // Bước 4: Duyệt từng người trong Phổ Cập để tìm kiếm
+            validPcgdData.forEach(row => {
+                let cccd = f1Cccd ? normalizeID(row[f1Cccd]) : "";
+                let name = normalizeName(row[f1Name]);
+                let dob = f1Dob ? normalizeStr(row[f1Dob]) : "";
+                let parent = f1Parent ? normalizeName(row[f1Parent]) : "";
+                
+                let match = null;
+
+                // Tầng 1: Khớp CCCD tuyệt đối
+                if (cccd && csdlByCccd.has(cccd)) {
+                    match = csdlByCccd.get(cccd);
+                }
+                // Tầng 2: Khớp Họ Tên + Ngày Sinh
+                else if (!match && name && dob && csdlByNameDob.has(name + '|' + dob)) {
+                    let candidates = csdlByNameDob.get(name + '|' + dob);
+                    match = candidates.find(c => !matchedCsdlIndices.has(c._sys_idx));
+                }
+                // Tầng 3: Khớp Họ Tên + Họ Tên Cha/Mẹ
+                else if (!match && name && parent && csdlByNameParent.has(name + '|' + parent)) {
+                    let candidates = csdlByNameParent.get(name + '|' + parent);
+                    match = candidates.find(c => !matchedCsdlIndices.has(c._sys_idx));
+                }
+
+                if (match) {
+                    matchedCsdlIndices.add(match._sys_idx);
+                    resultMatched.push({ pcgd: row, csdl: match });
+                } else {
+                    resultNeedInvestigate.push(row);
+                }
+            });
+
+            // Bước 5: Những người trong CSDL Ngành chưa được match
+            resultMissingPcgd = validCsdlData.filter(row => !matchedCsdlIndices.has(row._sys_idx));
+
+            populateYearFilter();
+            populateGradeFilter();
+
+            displayResultsSummary();
+            showToast("Đối chiếu hoàn tất!", "success");
+        }
+
+        function displayResultsSummary() {
+            const resultSection = document.getElementById('section-results');
+            resultSection.classList.remove('hidden');
+            setTimeout(() => resultSection.classList.remove('opacity-0'), 50);
+
+            // Cập nhật số liệu
+            document.getElementById('sum-pcgd').innerText = pcgdData.length.toLocaleString();
+            document.getElementById('sum-csdl').innerText = csdlData.length.toLocaleString();
+            
+            document.getElementById('sum-matched').innerText = resultMatched.length.toLocaleString();
+            document.getElementById('sum-investigate').innerText = resultNeedInvestigate.length.toLocaleString();
+            document.getElementById('sum-missing').innerText = resultMissingPcgd.length.toLocaleString();
+
+            document.getElementById('count-tab-inv').innerText = resultNeedInvestigate.length.toLocaleString();
+            document.getElementById('count-tab-mis').innerText = resultMissingPcgd.length.toLocaleString();
+            document.getElementById('count-tab-mat').innerText = resultMatched.length.toLocaleString();
+            
+            // Cập nhật số liệu tab trùng lặp
+            const tabDupEl = document.getElementById('count-tab-dup');
+            if(tabDupEl) tabDupEl.innerText = resultDuplicate.length.toLocaleString();
+
+            // Mặc định focus vào tab cần điều tra
+            currentPage = 1;
+            switchTab('investigate');
+            
+            // Cuộn mượt tới kết quả
+            setTimeout(() => {
+                resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 300);
+        }
+
+        function handleSearch(val) {
+            currentSearchTerm = val.toLowerCase().trim();
+            currentPage = 1;
+            renderTable();
+        }
+
+        function getFilteredData() {
+            let dataset = [];
+            let headersToSearch = [];
+            
+            if (currentTab === 'investigate') {
+                dataset = resultNeedInvestigate;
+                headersToSearch = pcgdHeaders;
+            } else if (currentTab === 'missing') {
+                dataset = resultMissingPcgd;
+                headersToSearch = csdlHeaders;
+            } else if (currentTab === 'duplicate') {
+                dataset = resultDuplicate;
+                headersToSearch = ['source', 'cccd', 'name', 'dob'];
+            } else {
+                dataset = resultMatched;
+            }
+
+            // Lọc theo năm sinh
+            if (currentYearFilter) {
+                const f1Dob = document.getElementById('pcgd-dob').value;
+                const f2Dob = document.getElementById('csdl-dob').value;
+
+                dataset = dataset.filter(row => {
+                    let dobStr = "";
+                    if (currentTab === 'investigate') {
+                        dobStr = f1Dob && row[f1Dob] ? String(row[f1Dob]) : "";
+                    } else if (currentTab === 'missing') {
+                        dobStr = f2Dob && row[f2Dob] ? String(row[f2Dob]) : "";
+                    } else if (currentTab === 'duplicate') {
+                        dobStr = row.dob ? String(row.dob) : "";
+                    } else { 
+                        // Dữ liệu matched kết hợp cả 2 nguồn
+                        dobStr = (f1Dob && row.pcgd[f1Dob] ? String(row.pcgd[f1Dob]) : "") + " " + 
+                                 (f2Dob && row.csdl[f2Dob] ? String(row.csdl[f2Dob]) : "");
+                    }
+                    
+                    let y = extractYear(dobStr);
+                    return y === currentYearFilter;
+                });
+            }
+
+            // Lọc theo Khối lớp (Cho phép nhiều giá trị)
+            if (currentGradeFilterValues.size > 0 && currentTab !== 'duplicate') {
+                const f1Grade = document.getElementById('pcgd-grade').value;
+                const f2Grade = document.getElementById('csdl-grade').value;
+
+                dataset = dataset.filter(row => {
+                    let gradeStr = "";
+                    if (currentTab === 'investigate') {
+                        gradeStr = f1Grade && row[f1Grade] !== undefined ? String(row[f1Grade]).trim() : "";
+                    } else if (currentTab === 'missing') {
+                        gradeStr = f2Grade && row[f2Grade] !== undefined ? String(row[f2Grade]).trim() : "";
+                    } else { 
+                        // matched
+                        gradeStr = f1Grade && row.pcgd[f1Grade] !== undefined ? String(row.pcgd[f1Grade]).trim() : "";
+                        if (!gradeStr) {
+                             gradeStr = f2Grade && row.csdl[f2Grade] !== undefined ? String(row.csdl[f2Grade]).trim() : "";
+                        }
+                    }
+                    return currentGradeFilterValues.has(gradeStr);
+                });
+            }
+
+            // Lọc nâng cao (Cho phép chọn nhiều giá trị từ cột tùy biến)
+            if (currentAdvFilterCol && currentAdvFilterValues.size > 0 && currentTab !== 'duplicate') {
+                dataset = dataset.filter(row => {
+                    let val = "";
+                    if (currentTab === 'matched') {
+                        if (currentAdvFilterCol.startsWith('[PCGD] ')) {
+                            val = row.pcgd[currentAdvFilterCol.replace('[PCGD] ', '')];
+                        } else if (currentAdvFilterCol.startsWith('[Ngành] ')) {
+                            val = row.csdl[currentAdvFilterCol.replace('[Ngành] ', '')];
+                        }
+                    } else {
+                        val = row[currentAdvFilterCol];
+                    }
+                    val = (val !== undefined && val !== null) ? String(val).trim() : "";
+                    return currentAdvFilterValues.has(val);
+                });
+            }
+
+            if (!currentSearchTerm) return { dataset, headers: headersToSearch };
+
+            const filtered = dataset.filter(row => {
+                if (currentTab === 'matched') {
+                    // Cả 2 file kết hợp
+                    const pcgdVals = Object.values(row.pcgd).join(' ').toLowerCase();
+                    const csdlVals = Object.values(row.csdl).join(' ').toLowerCase();
+                    return pcgdVals.includes(currentSearchTerm) || csdlVals.includes(currentSearchTerm);
+                } else if (currentTab === 'duplicate') {
+                    const vals = row.source + ' ' + row.cccd + ' ' + row.name + ' ' + row.dob;
+                    return vals.toLowerCase().includes(currentSearchTerm);
+                } else {
+                    // Dò tìm trên tất cả các cột của dòng hiện tại
+                    const rowVals = Object.values(row).join(' ').toLowerCase();
+                    return rowVals.includes(currentSearchTerm);
+                }
+            });
+
+            return { dataset: filtered, headers: headersToSearch };
+        }
+
+        function switchTab(tabId) {
+            currentTab = tabId;
+            currentPage = 1;
+            
+            // Update Tab UI styles
+            ['investigate', 'missing', 'matched', 'duplicate'].forEach(id => {
+                const btn = document.getElementById(`tab-${id}`);
+                if (!btn) return;
+                
+                if (id === tabId) {
+                    btn.classList.add('tab-active');
+                    btn.classList.remove('tab-inactive');
+                } else {
+                    btn.classList.remove('tab-active');
+                    btn.classList.add('tab-inactive');
+                }
+            });
+
+            populateAdvFilterCols();
+            populateGradeFilter();
+            renderTable();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('table-body');
+            const thead = document.getElementById('table-head');
+            tbody.innerHTML = '';
+            thead.innerHTML = '';
+            
+            const { dataset, headers } = getFilteredData();
+            let headersToRender = headers;
+            
+            if (currentTab === 'matched') {
+                headersToRender = ['PCGD - Họ Tên', 'PCGD - CCCD', 'Ngành - Họ Tên', 'Ngành - CCCD'];
+            } else if (currentTab === 'duplicate') {
+                headersToRender = ['Nguồn Dữ Liệu', 'CCCD Trùng Lặp', 'Họ Tên', 'Ngày Sinh (nếu có)'];
+            }
+            
+            // Xử lý logic phân trang
+            const totalRows = dataset.length;
+            const startIdx = (currentPage - 1) * rowsPerPage;
+            const endIdx = Math.min(startIdx + rowsPerPage, totalRows);
+            
+            document.getElementById('table-info').innerHTML = totalRows > 0 
+                ? `Đang xem <strong class="text-slate-800">${startIdx + 1} - ${endIdx}</strong> / tổng <strong>${totalRows.toLocaleString()}</strong>` 
+                : `Không có dữ liệu`;
+                
+            document.getElementById('btn-prev').disabled = currentPage === 1;
+            document.getElementById('btn-next').disabled = endIdx >= totalRows;
+
+            if (totalRows === 0) {
+                tbody.innerHTML = `<tr><td colspan="${headersToRender.length + 1}" class="px-6 py-12 text-center text-slate-500 italic flex flex-col items-center justify-center"><i class="fa-regular fa-folder-open text-4xl mb-3 text-slate-300"></i> Trống</td></tr>`;
+                return;
+            }
+
+            // Render THead
+            let thHtml = '<tr><th class="px-4 py-3 font-semibold text-slate-600 w-16 text-center border-r border-slate-200 bg-slate-50 sticky left-0 z-10">STT</th>';
+            headersToRender.forEach(h => {
+                thHtml += `<th class="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap min-w-[120px]">${h}</th>`;
+            });
+            thHtml += '</tr>';
+            thead.innerHTML = thHtml;
+
+            // Render TBody
+            const pageData = dataset.slice(startIdx, endIdx);
+
+            const f1Name = document.getElementById('pcgd-name').value;
+            const f1Cccd = document.getElementById('pcgd-cccd').value;
+            const f2Name = document.getElementById('csdl-name').value;
+            const f2Cccd = document.getElementById('csdl-cccd').value;
+
+            let rowsHtml = '';
+            pageData.forEach((row, idx) => {
+                const isEven = idx % 2 === 0;
+                const bgClass = isEven ? 'bg-white' : 'bg-slate-50/50';
+                
+                let trHtml = `<tr class="${bgClass} hover:bg-blue-50/50 transition-colors">
+                                <td class="px-4 py-3 text-center text-slate-500 font-medium border-r border-slate-100 sticky left-0 ${bgClass}">${startIdx + idx + 1}</td>`;
+                
+                if (currentTab === 'matched') {
+                    // Custom view for matched tab
+                    trHtml += `<td class="px-4 py-3 font-medium text-slate-800 whitespace-nowrap">${row.pcgd[f1Name] || ''}</td>`;
+                    trHtml += `<td class="px-4 py-3 text-slate-600 whitespace-nowrap">${f1Cccd ? (row.pcgd[f1Cccd] || '') : ''}</td>`;
+                    trHtml += `<td class="px-4 py-3 font-medium text-slate-800 whitespace-nowrap border-l border-slate-200">${row.csdl[f2Name] || ''}</td>`;
+                    trHtml += `<td class="px-4 py-3 text-slate-600 whitespace-nowrap">${f2Cccd ? (row.csdl[f2Cccd] || '') : ''}</td>`;
+                } else if (currentTab === 'duplicate') {
+                    // Cảnh báo đỏ cho tab trùng lặp
+                    trHtml += `<td class="px-4 py-3 font-semibold text-purple-700 whitespace-nowrap">${row.source}</td>`;
+                    trHtml += `<td class="px-4 py-3 font-bold text-red-600 whitespace-nowrap">${row.cccd}</td>`;
+                    trHtml += `<td class="px-4 py-3 font-medium text-slate-800 whitespace-nowrap">${row.name}</td>`;
+                    trHtml += `<td class="px-4 py-3 text-slate-600 whitespace-nowrap">${row.dob}</td>`;
+                } else {
+                    // Default view cho các tab khác
+                    headersToRender.forEach(h => {
+                        trHtml += `<td class="px-4 py-3 text-slate-700 whitespace-nowrap max-w-[200px] truncate" title="${row[h] || ''}">${row[h] || ''}</td>`;
+                    });
+                }
+                trHtml += '</tr>';
+                rowsHtml += trHtml;
+            });
+            tbody.innerHTML = rowsHtml;
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTable();
+            }
+        }
+
+        function nextPage() {
+            const { dataset } = getFilteredData();
+            const maxPage = Math.ceil(dataset.length / rowsPerPage);
+            if (currentPage < maxPage) {
+                currentPage++;
+                renderTable();
+            }
+        }
+
+        function exportCurrentTab() {
+            const { dataset } = getFilteredData();
+            if (dataset.length === 0) {
+                showToast("Không có dữ liệu để xuất!", "warning");
+                return;
+            }
+
+            let dataToExport = [];
+            let fileName = "";
+            let sheetName = "";
+
+            // Prepare flattened data for Excel
+            if (currentTab === 'investigate') {
+                dataToExport = dataset;
+                fileName = "Can_Dieu_Tra_Pho_Cap.xlsx";
+                sheetName = "Can_Dieu_Tra";
+            } else if (currentTab === 'missing') {
+                dataToExport = dataset;
+                fileName = "Thieu_Trong_Pho_Cap.xlsx";
+                sheetName = "Thieu_Pho_Cap";
+            } else if (currentTab === 'duplicate') {
+                dataToExport = dataset.map(item => {
+                   return {
+                       "Nguồn Bị Lỗi": item.source,
+                       "CCCD Lặp Lại": item.cccd,
+                       ...item.original // Trút toàn bộ dữ liệu gốc vào các cột bên cạnh
+                   };
+                });
+                fileName = "Loi_Trung_CCCD.xlsx";
+                sheetName = "Loi_Trung_Lap";
+            } else {
+                dataset.forEach(row => {
+                    let flatRow = {};
+                    for (let key in row.pcgd) {
+                        flatRow[`[PCGD] ${key}`] = row.pcgd[key];
+                    }
+                    for (let key in row.csdl) {
+                        flatRow[`[Ngành] ${key}`] = row.csdl[key];
+                    }
+                    dataToExport.push(flatRow);
+                });
+                fileName = "Du_Lieu_Da_Khop.xlsx";
+                sheetName = "Du_Lieu_Khop";
+            }
+
+            try {
+                showToast("Đang tạo file Excel...", "info");
+                
+                // Use SheetJS to create Excel
+                const ws = XLSX.utils.json_to_sheet(dataToExport);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+                
+                // Trigger Download
+                XLSX.writeFile(wb, fileName);
+                
+                showToast(`Xuất file ${fileName} thành công!`, "success");
+            } catch (err) {
+                showToast("Lỗi khi xuất file: " + err.message, "error");
+            }
+        }
+    </script>
+</body>
+</html>
