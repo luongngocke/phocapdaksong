@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lọc Đối Tượng Trên 18 Tuổi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Thay thư viện xlsx thường bằng xlsx-js-style để hỗ trợ format cell -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Thêm thư viện Flatpickr cho định dạng ngày dd/mm/yyyy -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/vn.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .drag-active {
+            border-color: #3b82f6 !important;
+            background-color: #eff6ff !important;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+    </style>
+</head>
+<body class="text-gray-800 min-h-screen flex flex-col">
+
+    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
+                    <i class="fa-solid fa-filter"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-900">AgeFilter Pro</h1>
+                    <p class="text-xs text-gray-500">Lọc danh sách độ tuổi từ file Excel</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow p-4 sm:p-6 lg:p-8">
+        <div class="max-w-6xl mx-auto space-y-6">
+
+            <!-- Step 1: Upload -->
+            <div id="step-upload" class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 transition-all">
+                <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <span class="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-sm">1</span>
+                    Tải lên file Excel (.xlsx, .xls, .csv)
+                </h2>
+                
+                <div id="drop-zone" class="border-2 border-dashed border-gray-300 rounded-xl p-10 text-center cursor-pointer hover:bg-gray-50 transition-colors relative overflow-hidden">
+                    <div id="progress-bar-container" class="absolute bottom-0 left-0 h-1 w-full bg-gray-200 hidden">
+                        <div id="progress-bar" class="h-full bg-blue-500 transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    
+                    <input type="file" id="file-input" class="hidden" accept=".xlsx, .xls, .csv" />
+                    <i class="fa-solid fa-cloud-arrow-up text-4xl text-blue-500 mb-3" id="upload-icon"></i>
+                    <p class="text-gray-600 font-medium text-lg mb-1" id="upload-text">Kéo thả file vào đây hoặc click để chọn file</p>
+                    <p class="text-gray-400 text-sm" id="upload-subtext">Hỗ trợ các định dạng Excel chuẩn</p>
+                </div>
+                <div id="upload-status" class="hidden mt-4 p-3 rounded-lg flex items-center gap-3">
+                    <!-- Status message will be injected here -->
+                </div>
+            </div>
+
+            <!-- Step 2: Configure & Filter (Hidden by default) -->
+            <div id="step-config" class="hidden bg-white rounded-2xl shadow-sm border border-gray-200 p-6 transition-all">
+                <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <span class="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-sm">2</span>
+                    Cấu hình điều kiện lọc
+                </h2>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Chọn Sheet dữ liệu:</label>
+                    <select id="sheet-select" class="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 font-medium text-blue-700 cursor-pointer">
+                        <!-- Options injected via JS -->
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Cột chứa thông tin tuổi:</label>
+                        <select id="column-select" class="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50">
+                            <!-- Options injected via JS -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Định dạng dữ liệu:</label>
+                        <select id="type-select" class="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50">
+                            <option value="date" selected>Ngày sinh (VD: 15/08/2000)</option>
+                            <option value="year">Năm sinh (VD: 1995, 2004)</option>
+                            <option value="age">Số tuổi trực tiếp (VD: 19, 25)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Ngày mốc (Sinh trước/vào ngày):</label>
+                        <input type="text" id="cutoff-date" placeholder="dd/mm/yyyy" class="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-gray-700 font-medium cursor-pointer">
+                    </div>
+                </div>
+                <div>
+                    <button id="btn-filter" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors shadow-md shadow-blue-200 flex justify-center items-center gap-2 relative">
+                        <span id="btn-filter-text"><i class="fa-solid fa-play"></i> Lọc dữ liệu</span>
+                        <span id="btn-filter-spinner" class="hidden absolute inset-0 flex items-center justify-center bg-blue-700 rounded-lg">
+                            <i class="fa-solid fa-spinner fa-spin text-xl"></i>
+                        </span>
+                    </button>
+                </div>
+                <div class="mt-3 flex justify-between items-center text-sm">
+                    <span class="text-gray-500"><i class="fa-solid fa-circle-info mr-1"></i> Những đối tượng có ngày sinh tính đến ngày mốc (hoặc sớm hơn) sẽ được chọn.</span>
+                    <div id="filter-progress-text" class="hidden text-blue-600 font-medium animate-pulse">Đang xử lý dữ liệu...</div>
+                </div>
+            </div>
+
+            <!-- Step 3: Results (Hidden by default) -->
+            <div id="step-results" class="hidden bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col transition-all">
+                <div class="p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h2 class="text-lg font-semibold flex items-center gap-2">
+                        <span class="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-sm">3</span>
+                        Kết quả (<span id="result-count" class="text-blue-600 font-bold">0</span>/<span id="total-count">0</span>)
+                    </h2>
+                    <button id="btn-export" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors shadow-md shadow-green-200 flex justify-center items-center gap-2">
+                        <i class="fa-solid fa-file-excel"></i> Xuất file Excel
+                    </button>
+                </div>
+                
+                <div class="overflow-x-auto custom-scrollbar p-0 m-0 w-full" style="max-height: 500px;">
+                    <table class="w-full text-left border-collapse whitespace-nowrap text-sm">
+                        <thead class="bg-gray-50 sticky top-0 z-10 shadow-sm" id="table-head">
+                            <!-- Headers injected via JS -->
+                        </thead>
+                        <tbody id="table-body" class="divide-y divide-gray-200">
+                            <!-- Data injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="no-data-msg" class="hidden p-10 text-center text-gray-500">
+                    <i class="fa-regular fa-folder-open text-4xl mb-3 text-gray-300"></i>
+                    <p>Không tìm thấy dữ liệu nào thỏa mãn điều kiện.</p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Modal Cảnh Báo -->
+    <div id="custom-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 transition-opacity backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 transform transition-all">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-500 shrink-0">
+                    <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                </div>
+                <h3 id="modal-title" class="text-lg font-bold text-gray-900">Thông báo</h3>
+            </div>
+            <p id="modal-message" class="text-gray-600 mb-6 text-sm"></p>
+            <div class="flex justify-end">
+                <button onclick="document.getElementById('custom-modal').classList.add('hidden')" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors shadow-md">Đã hiểu</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State variables
+        let globalWorkbook = null; // Stores original parsed workbook
+        let globalData = [];      // Stores original parsed excel data
+        let filteredData = [];    // Stores the data after filtering
+        let headers = [];         // Stores column headers
+        let currentFileName = ""; // Stores original file name
+
+        // DOM Elements
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const uploadStatus = document.getElementById('upload-status');
+        const sheetSelect = document.getElementById('sheet-select');
+        const progressBarContainer = document.getElementById('progress-bar-container');
+        const progressBar = document.getElementById('progress-bar');
+        const uploadIcon = document.getElementById('upload-icon');
+        const uploadText = document.getElementById('upload-text');
+        const uploadSubtext = document.getElementById('upload-subtext');
+        const stepConfig = document.getElementById('step-config');
+        const stepResults = document.getElementById('step-results');
+        const columnSelect = document.getElementById('column-select');
+        const btnFilter = document.getElementById('btn-filter');
+        const btnFilterText = document.getElementById('btn-filter-text');
+        const btnFilterSpinner = document.getElementById('btn-filter-spinner');
+        const filterProgressText = document.getElementById('filter-progress-text');
+        const typeSelect = document.getElementById('type-select');
+        const cutoffDateInput = document.getElementById('cutoff-date');
+        const tableHead = document.getElementById('table-head');
+        const tableBody = document.getElementById('table-body');
+        const resultCount = document.getElementById('result-count');
+        const totalCount = document.getElementById('total-count');
+        const btnExport = document.getElementById('btn-export');
+        const noDataMsg = document.getElementById('no-data-msg');
+
+        // Hàm hiển thị Modal thay cho Alert
+        function showModal(title, message) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            document.getElementById('custom-modal').classList.remove('hidden');
+        }
+
+        // Khởi tạo ngày mốc mặc định (cố định 30/11/2008) với thư viện Flatpickr
+        flatpickr("#cutoff-date", {
+            dateFormat: "d/m/Y",
+            defaultDate: "30/11/2008",
+            locale: "vn",
+            allowInput: true
+        });
+
+        // --- File Upload Logic ---
+        
+        // Click to upload
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        // Drag and Drop events
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-active');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-active');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-active');
+            if (e.dataTransfer.files.length) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        // Input change event
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // Process the uploaded file
+        function handleFile(file) {
+            const validTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'text/csv'];
+            // basic extension fallback if MIME is empty
+            const validExtensions = ['.xlsx', '.xls', '.csv'];
+            const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+
+            if (!validTypes.includes(file.type) && !validExtensions.includes(fileExt)) {
+                showUploadStatus('Vui lòng chọn đúng định dạng file Excel (.xlsx, .xls, .csv)', 'error');
+                return;
+            }
+
+            currentFileName = file.name;
+            
+            showUploadStatus('', ''); // clear old
+            uploadStatus.classList.add('hidden');
+            progressBarContainer.classList.remove('hidden');
+            progressBar.style.width = '0%';
+            uploadIcon.className = "fa-solid fa-file-excel text-4xl text-blue-400 mb-3 animate-pulse";
+            uploadText.textContent = `Đang đọc file: ${file.name}...`;
+            uploadSubtext.textContent = "Vui lòng chờ trong giây lát";
+            
+            // Simulate reading progress for UX (since FileReader is often too fast to see)
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += 10;
+                if(progress <= 90) {
+                    progressBar.style.width = `${progress}%`;
+                }
+            }, 50);
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                setTimeout(() => {
+                    clearInterval(progressInterval);
+                    progressBar.style.width = '100%';
+                    
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        globalWorkbook = XLSX.read(data, {type: 'array', cellDates: true}); 
+                        
+                        if (!globalWorkbook.SheetNames || globalWorkbook.SheetNames.length === 0) {
+                            throw new Error("EMPTY_FILE");
+                        }
+
+                        // Đưa danh sách Sheet vào dropdown, bắt đầu bằng tuỳ chọn trống
+                        sheetSelect.innerHTML = '<option value="" disabled selected>-- Vui lòng chọn Sheet --</option>';
+                        globalWorkbook.SheetNames.forEach(sheetName => {
+                            const option = document.createElement('option');
+                            option.value = sheetName;
+                            option.textContent = sheetName;
+                            sheetSelect.appendChild(option);
+                        });
+                        
+                        // Reset Upload UI
+                        setTimeout(() => {
+                            resetUploadUI();
+                            showUploadStatus(`Đã tải thành công file <b>${file.name}</b>. Vui lòng chọn Sheet dữ liệu bên dưới.`, 'success');
+                            stepConfig.classList.remove('hidden');
+                            stepConfig.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                            
+                            // Xoá danh sách cột cũ nếu có
+                            columnSelect.innerHTML = '<option value="">-- Chọn cột --</option>';
+                        }, 300);
+
+                    } catch (error) {
+                        clearInterval(progressInterval);
+                        console.error(error);
+                        resetUploadUI();
+                        if(error.message === "EMPTY_FILE") {
+                            showUploadStatus('File Excel không có dữ liệu!', 'error');
+                        } else {
+                            showUploadStatus('Đã xảy ra lỗi khi đọc file. Vui lòng kiểm tra lại cấu trúc file.', 'error');
+                        }
+                    }
+                }, 100); // Allow UI to update progress bar before heavy parsing
+            };
+            
+            // Error handling for reader
+            reader.onerror = function() {
+                clearInterval(progressInterval);
+                resetUploadUI();
+                showUploadStatus('Lỗi khi đọc file từ hệ thống!', 'error');
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+
+        function resetUploadUI() {
+            progressBarContainer.classList.add('hidden');
+            progressBar.style.width = '0%';
+            uploadIcon.className = "fa-solid fa-cloud-arrow-up text-4xl text-blue-500 mb-3";
+            uploadText.textContent = "Kéo thả file vào đây hoặc click để chọn file";
+            uploadSubtext.textContent = "Hỗ trợ các định dạng Excel chuẩn";
+        }
+
+        // Display status messages in the upload zone
+        function showUploadStatus(message, type) {
+            uploadStatus.className = 'mt-4 p-3 rounded-lg flex items-center gap-3 text-sm';
+            uploadStatus.classList.remove('hidden');
+            
+            let icon = '';
+            if (type === 'error') {
+                uploadStatus.classList.add('bg-red-50', 'text-red-700', 'border', 'border-red-200');
+                icon = '<i class="fa-solid fa-circle-exclamation text-red-500 text-lg"></i>';
+            } else if (type === 'success') {
+                uploadStatus.classList.add('bg-green-50', 'text-green-700', 'border', 'border-green-200');
+                icon = '<i class="fa-solid fa-circle-check text-green-500 text-lg"></i>';
+            } else {
+                uploadStatus.classList.add('bg-blue-50', 'text-blue-700', 'border', 'border-blue-200');
+            }
+            
+            uploadStatus.innerHTML = `${icon} <span>${message}</span>`;
+        }
+
+        // Lắng nghe sự kiện đổi sheet
+        sheetSelect.addEventListener('change', (e) => {
+            loadSheetData(e.target.value);
+        });
+
+        // Hàm đọc dữ liệu từ sheet được chọn
+        function loadSheetData(sheetName) {
+            try {
+                const worksheet = globalWorkbook.Sheets[sheetName];
+                globalData = XLSX.utils.sheet_to_json(worksheet, { defval: "" }); 
+                
+                if (globalData.length === 0) {
+                    headers = [];
+                    showUploadStatus(`Sheet <b>${sheetName}</b> không có dữ liệu.`, 'error');
+                } else {
+                    headers = Object.keys(globalData[0]);
+                    showUploadStatus(`Đang chọn sheet <b>${sheetName}</b> với ${globalData.length} dòng dữ liệu.`, 'success');
+                }
+                
+                // Ẩn kết quả cũ khi đổi sheet
+                stepResults.classList.add('hidden');
+                
+                setupConfigSection();
+            } catch (err) {
+                console.error(err);
+                showUploadStatus(`Có lỗi khi đọc sheet ${sheetName}.`, 'error');
+            }
+        }
+
+        // Setup dropdowns after successful upload
+        function setupConfigSection() {
+            columnSelect.innerHTML = '';
+            
+            let autoSelected = false;
+            
+            if (headers.length === 0) {
+                const option = document.createElement('option');
+                option.textContent = "-- Không có cột --";
+                columnSelect.appendChild(option);
+                return;
+            }
+
+            headers.forEach(header => {
+                const option = document.createElement('option');
+                option.value = header;
+                option.textContent = header;
+                
+                const lowerHeader = header.toLowerCase();
+                
+                // Aggressive matching for Date of Birth primarily
+                if (!autoSelected) {
+                    if (lowerHeader.includes('ngày') || lowerHeader.includes('ngay sinh') || lowerHeader.includes('dob') || lowerHeader.includes('ngày sinh')) {
+                        option.selected = true;
+                        autoSelected = true;
+                        typeSelect.value = 'date';
+                    } else if (lowerHeader.includes('năm') || lowerHeader.includes('nam sinh')) {
+                        option.selected = true;
+                        autoSelected = true;
+                        typeSelect.value = 'year';
+                    } else if (lowerHeader.includes('tuổi') || lowerHeader.includes('tuoi') || lowerHeader.includes('age')) {
+                        option.selected = true;
+                        autoSelected = true;
+                        typeSelect.value = 'age';
+                    }
+                }
+                
+                columnSelect.appendChild(option);
+            });
+        }
+
+        // Calculate Age logic
+        btnFilter.addEventListener('click', () => {
+            const selectedSheet = sheetSelect.value;
+            const colName = columnSelect.value;
+            const colType = document.getElementById('type-select').value;
+            const cutoffDateValue = cutoffDateInput.value;
+            
+            if (!selectedSheet) {
+                showModal("Thiếu thông tin", "Vui lòng chọn Sheet dữ liệu trước khi lọc.");
+                return;
+            }
+            if (!colName) {
+                showModal("Thiếu thông tin", "Vui lòng chọn Cột chứa thông tin tuổi.");
+                return;
+            }
+            if (!cutoffDateValue) {
+                showModal("Thiếu thông tin", "Vui lòng chọn Ngày mốc để lọc dữ liệu.");
+                return;
+            }
+
+            // Phân tích ngày mốc định dạng dd/mm/yyyy
+            const dateParts = cutoffDateValue.split('/');
+            if (dateParts.length !== 3) {
+                showModal("Lỗi định dạng", "Ngày mốc không đúng định dạng. Vui lòng chọn lại.");
+                return;
+            }
+            const cutoffTarget = new Date(dateParts[2], dateParts[1] - 1, dateParts[0], 23, 59, 59, 999);
+            const targetYear = cutoffTarget.getFullYear();
+
+            btnFilterText.classList.add('invisible');
+            btnFilterSpinner.classList.remove('hidden');
+            filterProgressText.classList.remove('hidden');
+            stepResults.classList.add('opacity-50', 'pointer-events-none');
+            
+            // Reset table early
+            tableHead.innerHTML = '';
+            tableBody.innerHTML = '';
+            
+            // Use setTimeout to allow UI to render spinner before heavy synchronous filtering blocks main thread
+            setTimeout(() => {
+                const today = new Date();
+                const currentYear = today.getFullYear();
+                const requiredAge = currentYear - targetYear;
+
+                // Filter the data
+                filteredData = globalData.filter(row => {
+                    const rawValue = row[colName];
+                    if (rawValue === undefined || rawValue === null || rawValue === "") return false;
+
+                    try {
+                        if (colType === 'age') {
+                           // Chặn đọc nhầm ngày tháng thành tuổi
+                           if (String(rawValue).includes('/') || String(rawValue).includes('-')) return false;
+                           const age = Number(rawValue); // Dùng Number thay vì parseInt để tránh lấy số 02
+                           if(isNaN(age) || age <= 0 || age > 150) return false;
+                           return age >= 18; // Cố định điều kiện trên 18 tuổi
+                        } else if (colType === 'year') {
+                           // Chặn đọc nhầm ngày tháng thành năm sinh
+                           if (String(rawValue).includes('/') || String(rawValue).includes('-')) return false;
+                           const year = Number(rawValue);
+                           if(isNaN(year) || year < 1900 || year > currentYear) return false;
+                           // Nếu năm sinh nhỏ hơn hoặc bằng năm của ngày mốc thì lấy
+                           return year <= targetYear;
+                        } else if (colType === 'date') {
+                            // Handling Date
+                            let dateObj;
+                            
+                            // If SheetJS parsed it as Date object (cellDates: true)
+                            if (rawValue instanceof Date) {
+                                dateObj = rawValue;
+                            } else if (typeof rawValue === 'number') {
+                                // Excel serial date fallback (though cellDates should handle it)
+                                dateObj = new Date(Math.round((rawValue - 25569) * 86400 * 1000));
+                            } else {
+                                // String date parsing. Try common Vietnamese format DD/MM/YYYY
+                                const strVal = String(rawValue).trim();
+                                // Regex matching DD/MM/YYYY or DD-MM-YYYY
+                                const parts = strVal.split(/[\/\-]/);
+                                if (parts.length === 3) {
+                                    // check if year is at end
+                                    if(parts[2].length === 4) {
+                                        dateObj = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`); // YYYY-MM-DD
+                                    } else {
+                                        dateObj = new Date(strVal); // Fallback to standard JS parse
+                                    }
+                                } else {
+                                    dateObj = new Date(strVal);
+                                }
+                            }
+
+                            if (!isNaN(dateObj.getTime())) {
+                                // So sánh: ngày sinh <= ngày mốc (đã set tới 23:59:59 của ngày mốc)
+                                return dateObj.getTime() <= cutoffTarget.getTime();
+                            }
+                        }
+                    } catch(e) {
+                        // Ignore parsing errors for individual rows and just skip them
+                        return false;
+                    }
+
+                    // Mặc định không thỏa mãn nếu rơi qua các bước trên
+                    return false;
+                });
+
+                btnFilterText.classList.remove('invisible');
+                btnFilterSpinner.classList.add('hidden');
+                filterProgressText.classList.add('hidden');
+                stepResults.classList.remove('hidden', 'opacity-50', 'pointer-events-none');
+                
+                renderTable();
+            
+            }, 50); // 50ms delay for UI repaint
+        });
+
+        function renderTable() {
+            totalCount.textContent = globalData.length;
+            resultCount.textContent = filteredData.length;
+
+            if (filteredData.length === 0) {
+                noDataMsg.classList.remove('hidden');
+                document.querySelector('.overflow-x-auto').classList.add('hidden');
+                btnExport.disabled = true;
+                btnExport.classList.add('opacity-50', 'cursor-not-allowed');
+                return;
+            }
+
+            noDataMsg.classList.add('hidden');
+            document.querySelector('.overflow-x-auto').classList.remove('hidden');
+            btnExport.disabled = false;
+            btnExport.classList.remove('opacity-50', 'cursor-not-allowed');
+
+            // Render Headers
+            const trHead = document.createElement('tr');
+            // Add a sequence number column
+            const thSeq = document.createElement('th');
+            thSeq.className = "px-4 py-3 font-semibold text-gray-700 w-16";
+            thSeq.textContent = "STT";
+            trHead.appendChild(thSeq);
+
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.className = "px-4 py-3 font-semibold text-gray-700";
+                th.textContent = header;
+                trHead.appendChild(th);
+            });
+            tableHead.appendChild(trHead);
+
+            // Render Body (limit to 1000 rows for browser performance in preview, but export all)
+            const displayLimit = Math.min(filteredData.length, 1000);
+            
+            for(let i=0; i < displayLimit; i++) {
+                const row = filteredData[i];
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-blue-50/50 transition-colors";
+                
+                // Seq cell
+                const tdSeq = document.createElement('td');
+                tdSeq.className = "px-4 py-3 text-gray-500 font-medium";
+                tdSeq.textContent = i + 1;
+                tr.appendChild(tdSeq);
+
+                headers.forEach(header => {
+                    const td = document.createElement('td');
+                    td.className = "px-4 py-3 text-gray-600";
+                    let val = row[header];
+                    
+                    // Format dates if they are object to look nice
+                    if (val instanceof Date) {
+                        val = val.toLocaleDateString('vi-VN');
+                    }
+                    
+                    td.textContent = val !== undefined ? val : '';
+                    tr.appendChild(td);
+                });
+                tableBody.appendChild(tr);
+            }
+
+            // If limited, show message
+            if (filteredData.length > displayLimit) {
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = headers.length + 1;
+                td.className = "px-4 py-3 text-center text-blue-600 font-medium bg-blue-50";
+                td.textContent = `Đang hiển thị ${displayLimit} dòng đầu tiên. Có thể xuất Excel để xem toàn bộ ${filteredData.length} kết quả.`;
+                tr.appendChild(td);
+                tableBody.appendChild(tr);
+            }
+            
+            stepResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // Export functionality
+        btnExport.addEventListener('click', () => {
+            if (filteredData.length === 0) return;
+
+            // Create a new workbook
+            const wb = XLSX.utils.book_new();
+            
+            // Format dữ liệu trước khi xuất (ví dụ: chuyển Date thành string dd/mm/yyyy để Excel dễ đọc hơn)
+            const formattedData = filteredData.map(row => {
+                const newRow = {};
+                headers.forEach(header => {
+                    let val = row[header];
+                    if (val instanceof Date) {
+                        const d = val.getDate().toString().padStart(2, '0');
+                        const m = (val.getMonth() + 1).toString().padStart(2, '0');
+                        const y = val.getFullYear();
+                        val = `${d}/${m}/${y}`;
+                    }
+                    newRow[header] = val;
+                });
+                return newRow;
+            });
+
+            // Convert filtered data back to sheet
+            // We use the same headers to maintain order
+            const ws = XLSX.utils.json_to_sheet(formattedData, { header: headers });
+            
+            // --- ĐỊNH DẠNG FILE EXCEL LÀM ĐẸP (STYLING) ---
+            
+            // 1. In đậm và tô màu nền cho dòng Tiêu đề (Header)
+            const headerStyle = {
+                font: { bold: true, color: { rgb: "FFFFFF" } },
+                fill: { fgColor: { rgb: "4F81BD" } }, // Màu xanh dương nhạt
+                alignment: { horizontal: "center", vertical: "center" },
+                border: {
+                    top: { style: "thin", color: { rgb: "000000" } },
+                    bottom: { style: "thin", color: { rgb: "000000" } },
+                    left: { style: "thin", color: { rgb: "000000" } },
+                    right: { style: "thin", color: { rgb: "000000" } }
+                }
+            };
+
+            const dataStyle = {
+                border: {
+                    top: { style: "thin", color: { rgb: "CCCCCC" } },
+                    bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+                    left: { style: "thin", color: { rgb: "CCCCCC" } },
+                    right: { style: "thin", color: { rgb: "CCCCCC" } }
+                }
+            };
+
+            // Lấy kích thước bảng
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            
+            // Mảng chứa độ rộng các cột
+            const colWidths = new Array(range.e.c + 1).fill(10); // Khởi tạo độ rộng tối thiểu là 10
+
+            for (let R = range.s.r; R <= range.e.r; ++R) {
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                    const cell = ws[cellAddress];
+
+                    if (!cell) continue;
+
+                    // Tính độ rộng cột tự động dựa trên độ dài nội dung
+                    const cellTextLength = cell.v ? cell.v.toString().length : 0;
+                    // Thêm 2 ký tự padding, max giới hạn độ rộng là 50
+                    colWidths[C] = Math.min(Math.max(colWidths[C], cellTextLength + 2), 50);
+
+                    // Áp dụng style
+                    if (R === 0) {
+                        // Dòng 0 là tiêu đề
+                        cell.s = headerStyle;
+                    } else {
+                        // Dòng dữ liệu
+                        cell.s = dataStyle;
+                    }
+                }
+            }
+
+            // Gắn mảng độ rộng cột vào thuộc tính !cols của worksheet
+            ws['!cols'] = colWidths.map(w => ({ wch: w }));
+            
+            // Đặt chiều cao dòng tiêu đề lớn hơn một chút
+            ws['!rows'] = [{ hpt: 25 }]; 
+
+            // Append sheet to workbook
+            XLSX.utils.book_append_sheet(wb, ws, "Tren_18_Tuoi");
+
+            // Generate filename based on original file
+            let baseName = currentFileName.substring(0, currentFileName.lastIndexOf('.'));
+            if (!baseName) baseName = "Danh_sach";
+            const exportFileName = `${baseName}_loc_tren_18_tuoi.xlsx`;
+
+            // Download
+            XLSX.writeFile(wb, exportFileName);
+        });
+
+    </script>
+</body>
+</html>
