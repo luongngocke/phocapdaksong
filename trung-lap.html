@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiểm Tra Trùng Lặp Dữ Liệu Excel</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS cho việc đọc file Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .drag-active {
+            border-color: #3b82f6 !important;
+            background-color: #eff6ff !important;
+        }
+        /* Tùy chỉnh thanh cuộn cho bảng */
+        .table-container::-webkit-scrollbar { width: 8px; height: 8px; }
+        .table-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .table-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .table-container::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto space-y-6">
+        
+        <!-- Header -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 text-center">
+            <h1 class="text-2xl md:text-3xl font-bold text-blue-600 mb-2">
+                <i class="fa-solid fa-file-excel mr-2"></i>Công Cụ Kiểm Tra Trùng Lặp Excel
+            </h1>
+            <p class="text-slate-500 text-sm md:text-base">
+                Tải lên tệp Excel của bạn, chọn cột cần kiểm tra (như CCCD, Họ Tên). Hệ thống sẽ tự động bỏ qua khoảng trắng, dấu gạch ngang (-) và dấu nháy đơn (') để tìm ra dữ liệu trùng lặp.
+            </p>
+        </div>
+
+        <!-- Vùng Upload -->
+        <div id="uploadSection" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 transition-all duration-300">
+            <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:bg-slate-50 transition-colors" onclick="document.getElementById('fileInput').click()">
+                <i class="fa-solid fa-cloud-arrow-up text-4xl text-slate-400 mb-3"></i>
+                <h3 class="text-lg font-semibold text-slate-700">Kéo thả file Excel vào đây hoặc click để tải lên</h3>
+                <p class="text-sm text-slate-400 mt-1">Hỗ trợ các định dạng: .xlsx, .xls</p>
+                <input type="file" id="fileInput" accept=".xlsx, .xls" class="hidden">
+            </div>
+            
+            <div id="fileInfo" class="hidden mt-4 flex items-center justify-between p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                <div class="flex items-center space-x-3">
+                    <i class="fa-solid fa-file-excel text-green-600 text-xl"></i>
+                    <div>
+                        <p id="fileName" class="font-medium text-sm text-slate-700">filename.xlsx</p>
+                        <p id="rowCount" class="text-xs text-slate-500">0 dòng dữ liệu</p>
+                    </div>
+                </div>
+                <button id="resetBtn" class="text-slate-400 hover:text-red-500 transition-colors" title="Xóa file">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Khu vực Chọn cột và Action (Ẩn mặc định) -->
+        <div id="actionSection" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-6 opacity-0 transition-opacity duration-500">
+            <div class="flex flex-col gap-4">
+                <div class="w-full">
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Chọn (các) cột để xác định dữ liệu trùng lặp:</label>
+                    <p class="text-xs text-slate-500 mb-3">Bạn có thể chọn nhiều cột (VD: Họ tên + Năm sinh) để tăng độ chính xác. Hệ thống vẫn tự động bỏ qua khoảng trắng, dấu (-), (').</p>
+                    <div id="columnCheckboxes" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-48 overflow-y-auto p-2 border border-slate-200 rounded-lg bg-slate-50">
+                        <!-- Checkboxes sẽ được render bằng JS -->
+                    </div>
+                </div>
+                <div class="w-full flex justify-end">
+                    <button id="checkBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-6 rounded-lg shadow-sm transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        <i class="fa-solid fa-magnifying-glass"></i> Kiểm tra trùng lặp
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kết quả -->
+        <div id="resultSection" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden opacity-0 transition-opacity duration-500">
+            <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                <h2 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-list-check mr-2 text-blue-600"></i>Kết quả kiểm tra</h2>
+                <span id="duplicateSummary" class="text-sm font-medium bg-red-100 text-red-700 px-3 py-1 rounded-full hidden"></span>
+            </div>
+            
+            <div id="emptyResult" class="hidden p-8 text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 text-green-500 mb-4">
+                    <i class="fa-solid fa-check text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-slate-700">Tuyệt vời!</h3>
+                <p class="text-slate-500 mt-1">Không tìm thấy dữ liệu trùng lặp nào dựa trên tiêu chí đã chọn.</p>
+            </div>
+
+            <div id="tableContainer" class="hidden p-4 md:p-6 space-y-6 max-h-[700px] overflow-y-auto">
+                <!-- Các nhóm trùng lặp sẽ render vào đây -->
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // DOM Elements
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileNameEl = document.getElementById('fileName');
+        const rowCountEl = document.getElementById('rowCount');
+        const resetBtn = document.getElementById('resetBtn');
+        
+        const actionSection = document.getElementById('actionSection');
+        const columnCheckboxes = document.getElementById('columnCheckboxes');
+        const checkBtn = document.getElementById('checkBtn');
+        
+        const resultSection = document.getElementById('resultSection');
+        const duplicateSummary = document.getElementById('duplicateSummary');
+        const emptyResult = document.getElementById('emptyResult');
+        const tableContainer = document.getElementById('tableContainer');
+
+        // Global State
+        let excelData = []; // Mảng 2 chiều chứa dữ liệu sheet
+        let headers = [];
+
+        // Events Drag & Drop
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('drag-active'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-active'), false);
+        });
+
+        dropZone.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            let dt = e.dataTransfer;
+            let files = dt.files;
+            if(files.length) {
+                fileInput.files = files;
+                processFile(files[0]);
+            }
+        }
+
+        fileInput.addEventListener('change', function(e) {
+            if(this.files.length) {
+                processFile(this.files[0]);
+            }
+        });
+
+        resetBtn.addEventListener('click', resetApp);
+
+        function processFile(file) {
+            // Kiểm tra định dạng
+            if (!file.name.match(/\.(xlsx|xls)$/i)) {
+                alert("Vui lòng tải lên tệp Excel (.xlsx hoặc .xls)");
+                return;
+            }
+
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    
+                    // Lấy sheet đầu tiên
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // Convert sang mảng 2 chiều, header: 1 lấy cả dòng trống, thuận tiện để track index
+                    excelData = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ""});
+                    
+                    if(excelData.length === 0) {
+                        alert("Tệp Excel trống!");
+                        return;
+                    }
+
+                    // Tách header (Dòng 1)
+                    headers = excelData[0];
+                    
+                    // Cập nhật UI
+                    fileNameEl.textContent = file.name;
+                    rowCountEl.textContent = `${excelData.length - 1} dòng dữ liệu (không tính tiêu đề)`;
+                    
+                    dropZone.classList.add('hidden');
+                    fileInfo.classList.remove('hidden');
+                    
+                    populateColumnSelect(headers);
+                    showActionSection();
+                    hideResultSection();
+
+                } catch (error) {
+                    console.error(error);
+                    alert("Đã xảy ra lỗi khi đọc tệp Excel. Tệp có thể bị hỏng.");
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+
+        function populateColumnSelect(headers) {
+            columnCheckboxes.innerHTML = '';
+            
+            headers.forEach((header, index) => {
+                // Chỉ thêm các cột có tiêu đề
+                if(header !== undefined && header !== null && String(header).trim() !== "") {
+                    const label = document.createElement('label');
+                    label.className = "flex items-center space-x-2 p-2 bg-white border border-slate-200 rounded cursor-pointer hover:bg-blue-50 transition-colors";
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = "checkbox";
+                    checkbox.name = "colCheck";
+                    checkbox.value = index;
+                    checkbox.className = "form-checkbox h-4 w-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500";
+                    
+                    checkbox.addEventListener('change', checkSelection);
+
+                    const span = document.createElement('span');
+                    span.className = "text-sm text-slate-700 truncate";
+                    span.textContent = String(header).trim() + ` (Cột ${String.fromCharCode(65 + index)})`;
+                    span.title = String(header).trim();
+                    
+                    label.appendChild(checkbox);
+                    label.appendChild(span);
+                    columnCheckboxes.appendChild(label);
+                }
+            });
+        }
+
+        function checkSelection() {
+            const checked = document.querySelectorAll('input[name="colCheck"]:checked');
+            checkBtn.disabled = checked.length === 0;
+        }
+
+        function normalizeString(str) {
+            if (str === undefined || str === null) return "";
+            let s = String(str);
+            // Bỏ khoảng trắng, dấu gạch ngang '-', và dấu nháy đơn '''
+            // Chuyển về chữ thường
+            return s.replace(/[\s\-']/g, '').toLowerCase();
+        }
+
+        checkBtn.addEventListener('click', function() {
+            const selectedCheckboxes = document.querySelectorAll('input[name="colCheck"]:checked');
+            if (selectedCheckboxes.length === 0) return;
+
+            const selectedCols = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value));
+
+            // Map lưu trữ: Key = Chuỗi chuẩn hóa kết hợp, Value = { rowsData: Array, rowIndices: Array }
+            const valueMap = new Map();
+
+            // Lặp qua dữ liệu, bỏ qua dòng 0 (Header)
+            for (let i = 1; i < excelData.length; i++) {
+                const row = excelData[i];
+                // Bỏ qua dòng trống hoàn toàn
+                if (row.length === 0 || row.every(cell => cell === "")) continue;
+
+                // Tạo key kết hợp từ các cột đã chọn
+                let rowKeyParts = [];
+                let hasValue = false;
+
+                for (let colIndex of selectedCols) {
+                    let rawValue = row[colIndex];
+                    if (rawValue !== undefined && rawValue !== null && String(rawValue).trim() !== "") {
+                        hasValue = true;
+                    }
+                    rowKeyParts.push(normalizeString(rawValue));
+                }
+
+                // Nếu tất cả các cột chọn đều rỗng thì bỏ qua dòng này
+                if (!hasValue) continue;
+
+                // Ghép các khóa lại với nhau, phân cách bằng ' | '
+                const normalizedKey = rowKeyParts.join(' | ');
+
+                if (!valueMap.has(normalizedKey)) {
+                    valueMap.set(normalizedKey, {
+                        rowsData: [row],
+                        rowIndices: [i + 1] // +1 vì Excel bắt đầu từ dòng 1
+                    });
+                } else {
+                    const data = valueMap.get(normalizedKey);
+                    data.rowsData.push(row);
+                    data.rowIndices.push(i + 1);
+                }
+            }
+
+            // Lọc ra các bản ghi trùng lặp (xuất hiện > 1 lần)
+            const duplicates = [];
+            for (const [normalizedKey, data] of valueMap.entries()) {
+                if (data.rowIndices.length > 1) {
+                    duplicates.push({
+                        normalizedKey: normalizedKey,
+                        rowsData: data.rowsData,
+                        rowIndices: data.rowIndices,
+                        count: data.rowIndices.length
+                    });
+                }
+            }
+
+            renderResults(duplicates);
+        });
+
+        function renderResults(duplicates) {
+            resultSection.classList.remove('hidden');
+            // Dùng setTimeout nhỏ để trigger CSS transition
+            setTimeout(() => {
+                resultSection.classList.remove('opacity-0');
+            }, 50);
+
+            tableContainer.innerHTML = "";
+
+            if (duplicates.length === 0) {
+                // Không có trùng lặp
+                emptyResult.classList.remove('hidden');
+                tableContainer.classList.add('hidden');
+                duplicateSummary.classList.add('hidden');
+            } else {
+                // Sắp xếp theo số lượng trùng lặp giảm dần
+                duplicates.sort((a, b) => b.count - a.count);
+
+                emptyResult.classList.add('hidden');
+                tableContainer.classList.remove('hidden');
+                duplicateSummary.classList.remove('hidden');
+                
+                let totalDuplicates = duplicates.reduce((acc, curr) => acc + curr.count, 0);
+                duplicateSummary.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Phát hiện ${duplicates.length} nhóm trùng (tổng cộng ${totalDuplicates} dòng)`;
+
+                duplicates.forEach((item, index) => {
+                    // Tạo một card cho mỗi nhóm trùng lặp
+                    const groupCard = document.createElement('div');
+                    groupCard.className = "bg-white border border-red-200 rounded-xl overflow-hidden shadow-sm";
+                    
+                    // Header của nhóm
+                    const groupHeader = document.createElement('div');
+                    groupHeader.className = "bg-red-50 border-b border-red-100 px-4 py-3 flex justify-between items-center";
+                    groupHeader.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <span class="bg-red-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">${index + 1}</span>
+                            <div>
+                                <span class="text-xs text-slate-500 block">Dữ liệu chuẩn hóa khớp nhau:</span>
+                                <span class="font-mono text-sm font-semibold text-slate-800 break-all">${escapeHTML(item.normalizedKey)}</span>
+                            </div>
+                        </div>
+                        <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-bold shadow-sm whitespace-nowrap">
+                            ${item.count} dòng trùng
+                        </span>
+                    `;
+                    groupCard.appendChild(groupHeader);
+
+                    // Bảng chi tiết hiển thị ĐỦ CÁC CỘT
+                    const tableWrapper = document.createElement('div');
+                    tableWrapper.className = "overflow-x-auto table-container";
+                    
+                    let tableHTML = `
+                        <table class="w-full text-left text-sm whitespace-nowrap">
+                            <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-4 py-2 font-semibold border-r border-slate-200 sticky left-0 z-10 bg-slate-50 shadow-[1px_0_0_0_#e2e8f0]">Dòng</th>
+                    `;
+                    
+                    // Tạo header dựa trên các cột thực tế của file excel
+                    headers.forEach(h => {
+                        tableHTML += `<th class="px-4 py-2 font-semibold border-r border-slate-200">${escapeHTML(h || '')}</th>`;
+                    });
+                    tableHTML += `</tr></thead><tbody class="divide-y divide-slate-100">`;
+
+                    // Điền dữ liệu từng dòng
+                    item.rowsData.forEach((row, rowIndexIdx) => {
+                        const rowNum = item.rowIndices[rowIndexIdx];
+                        tableHTML += `<tr class="hover:bg-amber-50/30 transition-colors">`;
+                        
+                        // Cột STT dòng (Sticky)
+                        tableHTML += `<td class="px-4 py-2 font-mono text-xs text-indigo-600 font-bold border-r border-slate-200 sticky left-0 bg-white shadow-[1px_0_0_0_#e2e8f0]">#${rowNum}</td>`;
+                        
+                        // Lặp qua số lượng cột của headers để in ra toàn bộ giá trị
+                        for (let colIdx = 0; colIdx < headers.length; colIdx++) {
+                            const cellValue = row[colIdx] !== undefined ? row[colIdx] : '';
+                            tableHTML += `<td class="px-4 py-2 border-r border-slate-100 text-slate-700">${escapeHTML(cellValue)}</td>`;
+                        }
+                        tableHTML += `</tr>`;
+                    });
+
+                    tableHTML += `</tbody></table>`;
+                    tableWrapper.innerHTML = tableHTML;
+                    groupCard.appendChild(tableWrapper);
+
+                    tableContainer.appendChild(groupCard);
+                });
+            }
+        }
+
+        // Helper functions
+        function showActionSection() {
+            actionSection.classList.remove('hidden');
+            setTimeout(() => {
+                actionSection.classList.remove('opacity-0');
+            }, 50);
+        }
+
+        function hideActionSection() {
+            actionSection.classList.add('opacity-0');
+            setTimeout(() => {
+                actionSection.classList.add('hidden');
+            }, 500);
+        }
+
+        function hideResultSection() {
+            resultSection.classList.add('opacity-0');
+            setTimeout(() => {
+                resultSection.classList.add('hidden');
+                tableContainer.innerHTML = "";
+            }, 500);
+        }
+
+        function resetApp() {
+            fileInput.value = "";
+            excelData = [];
+            headers = [];
+            
+            fileInfo.classList.add('hidden');
+            dropZone.classList.remove('hidden');
+            
+            columnCheckboxes.innerHTML = '';
+            checkBtn.disabled = true;
+            
+            hideActionSection();
+            hideResultSection();
+        }
+
+        // Chống XSS đơn giản
+        function escapeHTML(str) {
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
