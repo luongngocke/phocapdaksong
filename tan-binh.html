@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tra Cứu Nhân Khẩu Tân Bình</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Tùy chỉnh thanh cuộn cho bảng dữ liệu mượt mà hơn */
+        .table-container::-webkit-scrollbar { 
+            width: 8px; 
+            height: 8px; 
+        }
+        .table-container::-webkit-scrollbar-track { 
+            background: #f8fafc; 
+            border-radius: 4px; 
+        }
+        .table-container::-webkit-scrollbar-thumb { 
+            background: #cbd5e1; 
+            border-radius: 4px; 
+        }
+        .table-container::-webkit-scrollbar-thumb:hover { 
+            background: #94a3b8; 
+        }
+
+        /* Hiệu ứng focus input */
+        .search-input:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen p-4 md:p-8 flex justify-center items-start font-sans text-slate-800">
+
+    <div class="w-full max-w-7xl bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col h-[85vh] border border-slate-200">
+        
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-700 to-blue-500 p-6 text-white shrink-0 shadow-sm relative z-20">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                    <i class="fas fa-users text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight">Hệ Thống Tra Cứu Nhân Khẩu</h1>
+                    <p class="text-blue-100 text-sm mt-1 opacity-90">Thôn Tân Bình, xã Đắk Song - Nhập từ khóa vào ô bên dưới để tìm kiếm</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Controls Panel -->
+        <div class="p-4 sm:p-6 border-b border-slate-200 bg-slate-50 flex flex-col md:flex-row justify-between items-center gap-4 shrink-0 z-10 relative">
+            
+            <!-- Ô tìm kiếm -->
+            <div class="relative w-full md:w-1/2 lg:w-2/5 group">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <i class="fas fa-search text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
+                </div>
+                <input type="text" id="searchInput" class="search-input block w-full pl-11 pr-4 py-3 border border-slate-300 rounded-xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:border-blue-500 text-slate-700 transition duration-200 ease-in-out shadow-sm" placeholder="Nhập tên, số phiếu, địa chỉ...">
+                <!-- Nút xóa nhanh -->
+                <button id="clearSearch" class="absolute inset-y-0 right-0 pr-4 flex items-center hidden text-slate-400 hover:text-slate-600">
+                    <i class="fas fa-times-circle"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Trạng thái bảng -->
+        <div class="px-6 py-3 bg-white flex justify-between items-center shrink-0 border-b border-slate-100 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] z-10 relative">
+            <span id="record-count" class="text-sm text-slate-500 font-medium bg-slate-100 px-3 py-1 rounded-full">Khởi tạo dữ liệu...</span>
+            <div id="loading" class="hidden flex items-center gap-2 text-blue-600 text-sm font-medium bg-blue-50 px-3 py-1 rounded-full">
+                <i class="fas fa-spinner fa-spin"></i> Đang xử lý file...
+            </div>
+        </div>
+
+        <!-- Khung chứa Bảng Dữ Liệu -->
+        <div class="flex-1 overflow-auto table-container bg-white relative w-full">
+            <table class="min-w-full divide-y divide-slate-200 border-collapse">
+                <thead class="bg-slate-50 sticky top-0 z-10 shadow-sm" id="table-head">
+                    <!-- Tiêu đề cột sẽ được tạo động bằng Javascript -->
+                </thead>
+                <tbody class="bg-white divide-y divide-slate-100" id="table-body">
+                    <!-- Các hàng dữ liệu sẽ được tạo động bằng Javascript -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Footer -->
+        <div class="bg-slate-50 border-t border-slate-200 p-3 text-center shrink-0 text-xs text-slate-400">
+            Ứng dụng xử lý dữ liệu trực tiếp trên trình duyệt - Dữ liệu được tải từ Google Sheet công khai.
+        </div>
+    </div>
+
+    <script>
+        // CẤU HÌNH GOOGLE SHEET
+        // Thay thế bằng ID của Google Sheet của bạn (lấy từ URL)
+        const SHEET_ID = '1Py4fYLyMQBXR493ks5hmF4nQ6ZwgCwEt'; // ID đã được cập nhật từ link của bạn
+        const SHEET_NAME = 'Sheet1'; // Tên của tab (sheet) chứa dữ liệu (Sửa nếu file của bạn tên khác, ví dụ: 'Trang tính 1')
+        
+        // URL xuất dữ liệu sang định dạng CSV từ Google Sheet công khai
+        const sheetUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_NAME}`;
+
+        // Biến lưu trữ dữ liệu
+        let originalData = [];
+        let currentHeaders = [];
+
+        // Hàm hiển thị thông báo lỗi
+        function showError(message) {
+            const tbody = document.getElementById('table-body');
+            document.getElementById('record-count').innerHTML = `<span class="font-bold text-red-600">Lỗi dữ liệu</span>`;
+            tbody.innerHTML = `
+                <tr>
+                    <td class="px-6 py-12 text-center text-red-500 bg-red-50/50" colspan="100%">
+                        <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-3 block"></i>
+                        <p class="text-lg font-medium">${message}</p>
+                        <p class="text-sm mt-2 text-red-400">Vui lòng kiểm tra lại cấu hình SHEET_ID, quyền chia sẻ công khai của file hoặc định dạng file.</p>
+                    </td>
+                </tr>`;
+        }
+
+        // Hàm parse CSV (Đơn giản hóa cho mục đích đọc từ GSheet)
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n');
+            if (lines.length === 0) return [];
+
+            // Hàm làm sạch chuỗi CSV (xử lý dấu ngoặc kép bọc chuỗi)
+            const cleanCell = (cell) => {
+                let cleaned = cell.trim();
+                if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+                    cleaned = cleaned.substring(1, cleaned.length - 1);
+                }
+                // Thay thế double quotes ("") bằng single quote (")
+                cleaned = cleaned.replace(/""/g, '"');
+                return cleaned;
+            };
+
+            // Parse dòng tiêu đề
+            const headers = lines[0].split('","').map(h => cleanCell(h));
+            
+            const data = [];
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue; // Bỏ qua dòng trống
+                
+                // Cắt theo dấu phẩy, có tính đến trường hợp dấu phẩy nằm trong ngoặc kép
+                // Regex đơn giản hóa cho CSV cơ bản từ GSheet
+                let rowValues = lines[i].split('","').map(c => cleanCell(c));
+                
+                let rowObj = {};
+                headers.forEach((header, index) => {
+                    rowObj[header] = rowValues[index] || "";
+                });
+                data.push(rowObj);
+            }
+            return data;
+        }
+
+        // Hàm tải dữ liệu từ Google Sheet
+        async function loadGoogleSheetData() {
+            const loadingEl = document.getElementById('loading');
+            loadingEl.classList.remove('hidden');
+            
+            try {
+                // Fetch dữ liệu CSV
+                const response = await fetch(sheetUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const csvData = await response.text();
+                
+                // Parse CSV thành mảng các Object
+                originalData = parseCSV(csvData);
+                
+                if (originalData.length > 0) {
+                    renderTable(originalData);
+                } else {
+                    showError("Google Sheet không có dữ liệu.");
+                }
+                
+            } catch (error) {
+                console.error("Lỗi khi tải Google Sheet:", error);
+                showError("Không thể tải dữ liệu từ Google Sheet. Hãy chắc chắn Sheet đã được cấp quyền 'Bất kỳ ai có đường liên kết đều có thể xem'.");
+            } finally {
+                loadingEl.classList.add('hidden');
+            }
+        }
+
+        // Hàm hiển thị dữ liệu ra bảng
+        function renderTable(data) {
+            const thead = document.getElementById('table-head');
+            const tbody = document.getElementById('table-body');
+            
+            // Xóa nội dung cũ
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+
+            // Cập nhật số lượng
+            document.getElementById('record-count').innerHTML = `<span class="font-bold text-blue-600">${data.length}</span> kết quả được tìm thấy`;
+
+            if (data.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td class="px-6 py-12 text-center text-slate-500 bg-slate-50/50">
+                            <i class="fas fa-folder-open text-4xl text-slate-300 mb-3 block"></i>
+                            <p class="text-lg">Không tìm thấy dữ liệu phù hợp.</p>
+                            <p class="text-sm mt-1">Vui lòng thử từ khóa khác hoặc tải lên file dữ liệu mới.</p>
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            // Tạo Header động dựa trên các key của object đầu tiên
+            currentHeaders = Object.keys(data[0]);
+            let headerRow = document.createElement('tr');
+            
+            currentHeaders.forEach(header => {
+                let th = document.createElement('th');
+                th.className = 'px-4 sm:px-6 py-3.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider bg-slate-50 border-b border-slate-200 whitespace-nowrap';
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+
+            // Chèn colspan cho thông báo rỗng nếu cần (cập nhật lại colspan cho phù hợp với số cột thực tế)
+            if(tbody.querySelector('td')) {
+                tbody.querySelector('td').setAttribute('colspan', currentHeaders.length);
+            }
+
+            // Tối ưu việc render DOM với DocumentFragment
+            const fragment = document.createDocumentFragment();
+
+            data.forEach((row, index) => {
+                let tr = document.createElement('tr');
+                tr.className = 'hover:bg-blue-50/50 transition-colors group cursor-default';
+                
+                // Hiệu ứng sọc cho bảng dễ nhìn hơn
+                if (index % 2 !== 0) tr.classList.add('bg-slate-50/30');
+
+                currentHeaders.forEach(header => {
+                    let td = document.createElement('td');
+                    td.className = 'px-4 sm:px-6 py-3 whitespace-nowrap text-sm text-slate-700 border-b border-slate-100 group-hover:border-blue-100';
+                    
+                    // Xử lý giá trị rỗng/null
+                    let cellValue = row[header];
+                    if (cellValue === undefined || cellValue === null) cellValue = '';
+                    
+                    // Style đặc biệt cho một số cột thường gặp
+                    if (header.toLowerCase().includes('trạng thái')) {
+                        let statusColor = 'bg-slate-100 text-slate-700';
+                        const valLower = String(cellValue).toLowerCase();
+                        if(valLower.includes('hợp lệ') && !valLower.includes('không')) statusColor = 'bg-green-100 text-green-700 border border-green-200';
+                        else if(valLower.includes('từ chối') || valLower.includes('không')) statusColor = 'bg-red-100 text-red-700 border border-red-200';
+                        else if(valLower.includes('chưa') || valLower.includes('chờ')) statusColor = 'bg-yellow-100 text-yellow-700 border border-yellow-200';
+                        
+                        td.innerHTML = `<span class="px-2.5 py-1 rounded-full text-xs font-medium ${statusColor}">${cellValue}</span>`;
+                    } else if (header.toLowerCase().includes('số phiếu')) {
+                         td.innerHTML = `<span class="font-medium text-blue-700">${cellValue}</span>`;
+                    } else {
+                        td.textContent = cellValue;
+                    }
+                    
+                    tr.appendChild(td);
+                });
+                fragment.appendChild(tr);
+            });
+            
+            tbody.appendChild(fragment);
+        }
+
+        // Hàm debounce để tránh lag khi gõ tìm kiếm quá nhanh
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        const searchInput = document.getElementById('searchInput');
+        const clearSearchBtn = document.getElementById('clearSearch');
+
+        // Hàm xử lý tìm kiếm đa cột
+        const handleSearch = debounce(() => {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            
+            // Hiện/ẩn nút xóa
+            if (searchTerm.length > 0) {
+                clearSearchBtn.classList.remove('hidden');
+            } else {
+                clearSearchBtn.classList.add('hidden');
+            }
+
+            if (searchTerm === '') {
+                renderTable(originalData);
+                return;
+            }
+
+            const filteredData = originalData.filter(row => {
+                // Kiểm tra xem có bất kỳ cột nào chứa chuỗi tìm kiếm không
+                return Object.values(row).some(value => {
+                    if (value === null || value === undefined) return false;
+                    return String(value).toLowerCase().includes(searchTerm);
+                });
+            });
+            renderTable(filteredData);
+        }, 300); // Đợi 300ms sau khi ngừng gõ mới tìm kiếm
+
+        searchInput.addEventListener('input', handleSearch);
+
+        // Chức năng nút xóa ô tìm kiếm
+        clearSearchBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            searchInput.focus();
+            handleSearch();
+        });
+
+        // Khởi tạo ứng dụng
+        window.onload = () => {
+            // Tải dữ liệu từ Google Sheet mặc định khi trang load
+            loadGoogleSheetData();
+            searchInput.focus();
+        };
+    </script>
+</body>
+</html>
