@@ -3,332 +3,542 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Homepage | Lê Ngọc Cường</title>
+    <title>LamDongEdu | Nền Tảng Số Giáo Dục Tiên Phong</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        mono: ['Fira Code', 'monospace'],
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
                     },
                     colors: {
-                        darker: '#0b0f19',
-                        dark: '#111827',
-                        card: '#1f2937',
-                        primary: '#0ea5e9',
-                        accent: '#38bdf8',
+                        primary: '#059669', // Emerald 600 - Rừng thông
+                        primary_hover: '#047857',
+                        primary_light: '#d1fae5',
+                        secondary: '#2563eb', // Blue 600 - Công nghệ
+                        dark: '#0f172a',
+                    },
+                    boxShadow: {
+                        'soft': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                        'floating': '0 20px 50px -15px rgba(5, 150, 105, 0.15)',
                     }
                 }
             }
         }
     </script>
     <style>
-        body {
-            background-color: theme('colors.darker');
-            background-image: 
-                radial-gradient(at 0% 0%, hsla(217, 100%, 16%, 0.5) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, hsla(217, 100%, 16%, 0.5) 0px, transparent 50%);
-            background-attachment: fixed;
-            color: #f3f4f6;
+        body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+        .gradient-text {
+            background: linear-gradient(135deg, #059669 0%, #2563eb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        
-        .glass-card {
-            background: rgba(31, 41, 55, 0.6);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+        .hero-bg {
+            background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%);
+            position: relative;
+            overflow: hidden;
         }
-
-        .link-item {
-            transition: all 0.2s ease-in-out;
+        .hero-bg::before {
+            content: '';
+            position: absolute;
+            top: -50%; right: -20%;
+            width: 800px; height: 800px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(5,150,105,0.05) 0%, rgba(255,255,255,0) 70%);
+            z-index: 0;
         }
-        
-        .link-item:hover {
-            transform: translateX(4px);
-            background: rgba(255, 255, 255, 0.05);
+        .blob-shape {
+            border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+            animation: morph 8s ease-in-out infinite;
         }
-        
-        /* Custom scrollbar for webkit */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0b0f19; 
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #374151; 
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #4b5563; 
+        @keyframes morph {
+            0%, 100% { border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; }
+            34% { border-radius: 70% 30% 50% 50% / 30% 30% 70% 70%; }
+            67% { border-radius: 100% 60% 60% 100% / 100% 100% 60% 60%; }
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-4 sm:p-8 font-sans selection:bg-primary selection:text-white">
+<body class="text-gray-700 bg-white">
 
-    <main class="w-full max-w-6xl w-full flex-grow flex flex-col gap-8">
+    <!-- HEADER -->
+    <header class="fixed w-full top-0 bg-white/90 backdrop-blur-md border-b border-gray-100 z-50 transition-all duration-300">
+        <div class="container mx-auto px-4 xl:px-8 h-20 flex items-center justify-between">
+            <!-- Logo -->
+            <a href="#" class="flex items-center gap-2">
+                <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white text-xl shadow-lg shadow-primary/30">
+                    <i class="fa-solid fa-leaf"></i>
+                </div>
+                <span class="text-2xl font-bold text-dark tracking-tight">LamDong<span class="text-primary">Edu</span></span>
+            </a>
+
+            <!-- Desktop Nav -->
+            <nav class="hidden lg:flex items-center gap-8 font-medium text-gray-600">
+                <a href="#" class="text-primary font-semibold">Trang chủ</a>
+                <a href="#" class="hover:text-primary transition-colors">Công cụ Hỗ trợ</a>
+                <a href="#" class="hover:text-primary transition-colors">Kho Học liệu</a>
+                <a href="#" class="hover:text-primary transition-colors">Tin tức CĐS</a>
+                <a href="#" class="hover:text-primary transition-colors">Liên hệ</a>
+            </nav>
+
+            <!-- Auth Buttons -->
+            <div class="hidden md:flex items-center gap-4">
+                <a href="#" class="text-gray-600 hover:text-primary font-medium">Đăng nhập</a>
+                <a href="#" class="bg-primary hover:bg-primary_hover text-white px-6 py-2.5 rounded-full font-medium transition-all shadow-md shadow-primary/20">Dành cho Giáo viên</a>
+            </div>
+
+            <!-- Mobile menu button -->
+            <button class="lg:hidden text-gray-600 text-2xl">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- HERO SECTION -->
+    <section class="hero-bg pt-32 pb-20 md:pt-40 md:pb-32 relative">
+        <div class="container mx-auto px-4 xl:px-8 relative z-10">
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+                
+                <!-- Left Content -->
+                <div class="space-y-6">
+                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary_light text-primary font-semibold text-sm">
+                        <span class="relative flex h-3 w-3">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                        </span>
+                        Hệ sinh thái số mới nhất 2026
+                    </div>
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-dark leading-tight">
+                        Kiến tạo tương lai <br>
+                        <span class="gradient-text">Giáo dục số Lâm Đồng</span>
+                    </h1>
+                    <p class="text-lg text-gray-600 max-w-xl">
+                        Nền tảng tích hợp toàn diện hỗ trợ Thầy Cô giáo trong công tác soạn giảng, quản lý học sinh và ứng dụng trí tuệ nhân tạo vào trường học.
+                    </p>
+                    
+                    <ul class="space-y-3 pt-2">
+                        <li class="flex items-center gap-3 text-gray-700">
+                            <i class="fa-solid fa-circle-check text-primary"></i> Tích hợp trực tiếp vnEdu & SMAS
+                        </li>
+                        <li class="flex items-center gap-3 text-gray-700">
+                            <i class="fa-solid fa-circle-check text-primary"></i> Trợ lý AI hỗ trợ soạn giáo án chuẩn BGD
+                        </li>
+                        <li class="flex items-center gap-3 text-gray-700">
+                            <i class="fa-solid fa-circle-check text-primary"></i> Thư viện tài nguyên & SGK điện tử
+                        </li>
+                    </ul>
+
+                    <div class="flex flex-wrap gap-4 pt-4">
+                        <button class="bg-secondary hover:bg-blue-700 text-white px-8 py-3.5 rounded-full font-bold transition-all shadow-lg shadow-secondary/30 flex items-center gap-2">
+                            Khám phá ngay <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                        <button class="bg-white hover:bg-gray-50 text-dark border border-gray-200 px-8 py-3.5 rounded-full font-bold transition-all flex items-center gap-2">
+                            <i class="fa-regular fa-circle-play text-primary"></i> Xem Video Hướng dẫn
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Content (Abstract UI Illustration instead of copyrighted image) -->
+                <div class="relative hidden lg:block">
+                    <!-- Base Blob -->
+                    <div class="absolute inset-0 bg-gradient-to-tr from-primary_light to-blue-100 blob-shape transform scale-110 -z-10"></div>
+                    
+                    <!-- Main Dashboard Card -->
+                    <div class="bg-white p-6 rounded-2xl shadow-floating border border-gray-100 relative z-10 transform hover:-translate-y-2 transition-transform duration-500">
+                        <div class="flex items-center justify-between mb-6 border-b pb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-secondary text-xl"><i class="fa-solid fa-chalkboard-user"></i></div>
+                                <div>
+                                    <div class="font-bold text-dark">Lớp 10A1 - Năm học 25/26</div>
+                                    <div class="text-xs text-gray-500">Sĩ số: 45 | GVCN: Nguyễn Văn A</div>
+                                </div>
+                            </div>
+                            <div class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">Trực tuyến</div>
+                        </div>
+                        
+                        <!-- Mini Chart/Stats -->
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <div class="bg-gray-50 p-3 rounded-xl text-center">
+                                <div class="text-xl font-extrabold text-primary">98%</div>
+                                <div class="text-[10px] text-gray-500 uppercase mt-1">Chuyên cần</div>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-xl text-center">
+                                <div class="text-xl font-extrabold text-secondary">8.5</div>
+                                <div class="text-[10px] text-gray-500 uppercase mt-1">Điểm TB</div>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-xl text-center">
+                                <div class="text-xl font-extrabold text-purple-600">12</div>
+                                <div class="text-[10px] text-gray-500 uppercase mt-1">Bài giảng</div>
+                            </div>
+                        </div>
+
+                        <!-- Floating elements -->
+                        <div class="absolute -right-8 top-1/4 bg-white p-4 rounded-xl shadow-xl border border-gray-100 animate-bounce" style="animation-duration: 3s;">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center"><i class="fa-solid fa-bell"></i></div>
+                                <div class="text-sm font-semibold">Lịch họp tổ bộ môn lúc 14:00</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- 4 COLUMNS FEATURE BAR (Overlapping Hero) -->
+    <section class="relative z-20 -mt-10 mb-20 px-4 xl:px-8 container mx-auto">
+        <div class="bg-white rounded-2xl shadow-soft border border-gray-100 p-6 md:p-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 divide-y md:divide-y-0 md:divide-x divide-gray-100">
+                
+                <!-- Item 1 -->
+                <div class="text-center px-4 pt-4 md:pt-0">
+                    <div class="w-16 h-16 mx-auto bg-blue-50 rounded-2xl flex items-center justify-center mb-4 transform hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-laptop-code text-3xl text-secondary"></i>
+                    </div>
+                    <h3 class="font-bold text-dark text-lg mb-2">Soạn Giảng AI</h3>
+                    <p class="text-sm text-gray-500 mb-4">Tự động hóa kịch bản bài giảng bằng Trí tuệ nhân tạo.</p>
+                    <a href="#" class="text-secondary font-semibold text-sm hover:underline">Sử dụng ngay</a>
+                </div>
+
+                <!-- Item 2 -->
+                <div class="text-center px-4 pt-4 md:pt-0">
+                    <div class="w-16 h-16 mx-auto bg-green-50 rounded-2xl flex items-center justify-center mb-4 transform hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-book-open-reader text-3xl text-primary"></i>
+                    </div>
+                    <h3 class="font-bold text-dark text-lg mb-2">Kho Học Liệu Số</h3>
+                    <p class="text-sm text-gray-500 mb-4">Hàng ngàn giáo án, bài giảng E-learning chuẩn hóa.</p>
+                    <a href="#" class="text-primary font-semibold text-sm hover:underline">Khám phá</a>
+                </div>
+
+                <!-- Item 3 -->
+                <div class="text-center px-4 pt-4 md:pt-0">
+                    <div class="w-16 h-16 mx-auto bg-orange-50 rounded-2xl flex items-center justify-center mb-4 transform hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-users-viewfinder text-3xl text-orange-500"></i>
+                    </div>
+                    <h3 class="font-bold text-dark text-lg mb-2">Quản Lý Học Sinh</h3>
+                    <p class="text-sm text-gray-500 mb-4">Đồng bộ Sổ liên lạc điện tử & điểm danh thông minh.</p>
+                    <a href="#" class="text-orange-500 font-semibold text-sm hover:underline">Vào App</a>
+                </div>
+
+                <!-- Item 4 -->
+                <div class="text-center px-4 pt-4 md:pt-0">
+                    <div class="w-16 h-16 mx-auto bg-purple-50 rounded-2xl flex items-center justify-center mb-4 transform hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-file-signature text-3xl text-purple-600"></i>
+                    </div>
+                    <h3 class="font-bold text-dark text-lg mb-2">Chấm Thi Tự Động</h3>
+                    <p class="text-sm text-gray-500 mb-4">Chấm trắc nghiệm qua Camera điện thoại tốc độ cao.</p>
+                    <a href="#" class="text-purple-600 font-semibold text-sm hover:underline">Tải ứng dụng</a>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- DETAILED SECTIONS (ZIG-ZAG) -->
+    <section class="py-16 bg-white overflow-hidden">
         
-        <!-- Header Section: Clock and Greeting -->
-        <header class="flex flex-col md:flex-row items-center justify-between gap-6 w-full glass-card p-8 rounded-3xl shadow-2xl shadow-black/50 border border-gray-800">
-            <div class="flex flex-col items-center md:items-start space-y-1">
-                <h2 id="greeting" class="text-2xl sm:text-3xl font-light text-gray-300">Xin chào,</h2>
-                <h1 class="text-4xl sm:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-accent to-blue-500">Lê Ngọc Cường</h1>
-                <p class="text-gray-400 mt-2 text-sm md:text-base flex items-center gap-2">
-                    <i class="fa-solid fa-terminal text-xs"></i> IT Professional & Educator
-                </p>
-            </div>
-            
-            <div class="flex flex-col items-center md:items-end">
-                <div id="clock" class="text-5xl sm:text-7xl font-mono font-bold tracking-tight text-white drop-shadow-[0_0_15px_rgba(14,165,233,0.3)]">
-                    00:00:00
-                </div>
-                <div id="date" class="text-gray-400 text-lg sm:text-xl font-medium mt-2 capitalize">
-                    Đang tải ngày tháng...
-                </div>
-            </div>
-        </header>
+        <div class="text-center mb-16">
+            <span class="text-primary font-bold uppercase tracking-wider text-sm">Về Nền Tảng</span>
+            <h2 class="text-3xl md:text-4xl font-extrabold text-dark mt-2">Hệ sinh thái dành riêng cho Giáo viên</h2>
+            <div class="w-20 h-1 bg-primary mx-auto mt-6 rounded-full"></div>
+        </div>
 
-        <!-- Search Bar -->
-        <div class="w-full max-w-2xl mx-auto relative group">
-            <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400 group-focus-within:text-accent transition-colors">
-                <i class="fa-brands fa-google"></i>
-            </div>
-            <input type="text" id="searchInput" 
-                class="w-full bg-gray-800/80 border border-gray-700 text-gray-100 text-lg rounded-2xl focus:ring-2 focus:ring-accent focus:border-accent block pl-12 p-4 shadow-lg transition-all placeholder-gray-500 outline-none backdrop-blur-sm" 
-                placeholder="Tìm kiếm trên Google..." autocomplete="off">
-            <div class="absolute inset-y-0 right-0 flex items-center pr-4 text-xs text-gray-500 font-mono">
-                Press Enter
+        <!-- Detail Row 1 -->
+        <div class="container mx-auto px-4 xl:px-8 mb-24">
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div class="order-2 md:order-1">
+                    <h3 class="text-3xl font-bold text-dark mb-4">Tài nguyên số phong phú, cập nhật liên tục</h3>
+                    <p class="text-gray-600 mb-6 text-lg">
+                        LamDongEdu cung cấp kho dữ liệu khổng lồ bao gồm Sách giáo khoa điện tử 3 bộ (Kết nối tri thức, Chân trời sáng tạo, Cánh diều), giáo án Word, bài giảng PowerPoint và các trò chơi tương tác (Quizizz, Kahoot) đã được phân loại theo từng cấp học tại tỉnh.
+                    </p>
+                    <ul class="space-y-4 mb-8">
+                        <li class="flex items-start gap-3">
+                            <div class="mt-1 bg-green-100 text-primary p-1 rounded"><i class="fa-solid fa-check text-sm"></i></div>
+                            <div>
+                                <h4 class="font-bold text-dark">Kiểm duyệt chặt chẽ</h4>
+                                <p class="text-sm text-gray-500">Tài liệu được hội đồng chuyên môn Sở GD&ĐT thẩm định.</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <div class="mt-1 bg-green-100 text-primary p-1 rounded"><i class="fa-solid fa-check text-sm"></i></div>
+                            <div>
+                                <h4 class="font-bold text-dark">Tải xuống miễn phí</h4>
+                                <p class="text-sm text-gray-500">Đặc quyền dành riêng cho tài khoản email @lamdong.edu.vn.</p>
+                            </div>
+                        </li>
+                    </ul>
+                    <a href="#" class="inline-flex bg-dark hover:bg-gray-800 text-white px-6 py-3 rounded-full font-semibold transition-colors">
+                        Truy cập Thư viện <i class="fa-solid fa-arrow-right ml-2 mt-1"></i>
+                    </a>
+                </div>
+                
+                <div class="order-1 md:order-2 relative">
+                    <!-- Abstract representation instead of photo -->
+                    <div class="w-full aspect-video bg-gray-100 rounded-2xl shadow-xl overflow-hidden border border-gray-200 relative flex items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-100">
+                        <i class="fa-solid fa-photo-film text-6xl text-gray-300 absolute"></i>
+                        <img src="https://placehold.co/800x500/e0e7ff/4f46e5?text=Giao+Dien+Kho+Hoc+Lieu" alt="Kho Học Liệu" class="w-full h-full object-cover opacity-90 mix-blend-multiply">
+                    </div>
+                    <!-- Decorative element -->
+                    <div class="absolute -bottom-6 -left-6 bg-white p-4 rounded-xl shadow-lg border border-gray-100 flex items-center gap-4">
+                        <div class="text-3xl font-black text-secondary">50k+</div>
+                        <div class="text-sm text-gray-500 leading-tight">Tài liệu<br>hiện có</div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Categories Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-            
-            <!-- Category 1: Tin học Cường Tín -->
-            <div class="glass-card rounded-2xl p-6 shadow-lg hover:border-gray-600 transition-colors">
-                <div class="flex items-center gap-3 mb-5 border-b border-gray-700/50 pb-3">
-                    <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
-                        <i class="fa-solid fa-briefcase text-xl"></i>
+        <!-- Detail Row 2 -->
+        <div class="container mx-auto px-4 xl:px-8">
+            <div class="grid md:grid-cols-2 gap-16 items-center">
+                <div class="relative">
+                    <div class="w-full aspect-[4/3] bg-gray-100 rounded-2xl shadow-xl overflow-hidden border border-gray-200 flex items-center justify-center bg-gradient-to-tr from-green-50 to-emerald-100">
+                         <img src="https://placehold.co/800x600/d1fae5/059669?text=Giao+Dien+App+Mobile" alt="App Mobile" class="w-full h-full object-cover opacity-90 mix-blend-multiply">
                     </div>
-                    <h3 class="text-xl font-semibold text-gray-100">Tin học Cường Tín</h3>
+                    <div class="absolute -top-6 -right-6 w-32 h-32 bg-secondary rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
                 </div>
-                <ul class="space-y-2">
-                    <li>
-                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-accent w-full">
-                            <i class="fa-solid fa-file-excel w-5 text-center opacity-70"></i>
-                            <span class="font-medium">AppSheet Inventory</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-accent w-full">
-                            <i class="fa-solid fa-video w-5 text-center opacity-70"></i>
-                            <span class="font-medium">Camera DDNS</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-accent w-full">
-                            <i class="fa-solid fa-file-invoice-dollar w-5 text-center opacity-70"></i>
-                            <span class="font-medium">Invoicing</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
 
-            <!-- Category 2: Giảng dạy -->
-            <div class="glass-card rounded-2xl p-6 shadow-lg hover:border-gray-600 transition-colors">
-                <div class="flex items-center gap-3 mb-5 border-b border-gray-700/50 pb-3">
-                    <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-                        <i class="fa-solid fa-chalkboard-user text-xl"></i>
+                <div>
+                    <h3 class="text-3xl font-bold text-dark mb-4">Tương tác và Đánh giá học sinh trực tiếp trên Mobile</h3>
+                    <p class="text-gray-600 mb-6 text-lg">
+                        Ứng dụng di động LamDongEdu giúp Thầy Cô dễ dàng nhập điểm, ghi sổ đầu bài điện tử và gửi thông báo trực tiếp đến Phụ huynh chỉ với vài thao tác chạm.
+                    </p>
+                    <p class="text-sm text-gray-500 mb-8 italic">
+                        * Phiên bản App dành riêng cho cán bộ giáo viên tỉnh Lâm Đồng đã có mặt trên 2 nền tảng.
+                    </p>
+                    
+                    <div class="flex gap-4">
+                        <a href="#" class="bg-black text-white px-5 py-2.5 rounded-lg flex items-center gap-3 hover:bg-gray-800 transition">
+                            <i class="fa-brands fa-apple text-2xl"></i>
+                            <div class="text-left">
+                                <div class="text-[10px] uppercase opacity-70">Tải trên</div>
+                                <div class="text-sm font-bold leading-none">App Store</div>
+                            </div>
+                        </a>
+                        <a href="#" class="bg-black text-white px-5 py-2.5 rounded-lg flex items-center gap-3 hover:bg-gray-800 transition">
+                            <i class="fa-brands fa-google-play text-xl text-green-400"></i>
+                            <div class="text-left">
+                                <div class="text-[10px] uppercase opacity-70">Tải trên</div>
+                                <div class="text-sm font-bold leading-none">Google Play</div>
+                            </div>
+                        </a>
                     </div>
-                    <h3 class="text-xl font-semibold text-gray-100">Giảng dạy</h3>
                 </div>
-                <ul class="space-y-2">
-                    <li>
-                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-emerald-400 w-full">
-                            <i class="fa-solid fa-school w-5 text-center opacity-70"></i>
-                            <span class="font-medium">Trường TH Lương Thế Vinh</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-emerald-400 w-full">
-                            <i class="fa-solid fa-globe w-5 text-center opacity-70"></i>
-                            <span class="font-medium">Đại sứ số</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-emerald-400 w-full">
-                            <i class="fa-solid fa-address-card w-5 text-center opacity-70"></i>
-                            <span class="font-medium">Enrollment Portal</span>
-                        </a>
-                    </li>
-                </ul>
             </div>
-
-            <!-- Category 3: Server & Network -->
-            <div class="glass-card rounded-2xl p-6 shadow-lg hover:border-gray-600 transition-colors">
-                <div class="flex items-center gap-3 mb-5 border-b border-gray-700/50 pb-3">
-                    <div class="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-400">
-                        <i class="fa-solid fa-server text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-100">Server & Network</h3>
-                </div>
-                <ul class="space-y-2">
-                    <li>
-                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-orange-400 w-full">
-                            <i class="fa-brands fa-cloudflare w-5 text-center opacity-70"></i>
-                            <span class="font-medium">Cloudflare</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-orange-400 w-full">
-                            <i class="fa-solid fa-bolt w-5 text-center opacity-70"></i>
-                            <span class="font-medium">Vercel</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-orange-400 w-full">
-                            <i class="fa-brands fa-wordpress w-5 text-center opacity-70"></i>
-                            <span class="font-medium">WordPress</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            <!-- Category 4: Dev & Scripts -->
-            <div class="glass-card rounded-2xl p-6 shadow-lg hover:border-gray-600 transition-colors">
-                <div class="flex items-center gap-3 mb-5 border-b border-gray-700/50 pb-3">
-                    <div class="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center text-yellow-400">
-                        <i class="fa-solid fa-code text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-100">Dev & Scripts</h3>
-                </div>
-                <ul class="space-y-2">
-                    <li>
-                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-yellow-400 w-full">
-                            <i class="fa-brands fa-python w-5 text-center opacity-70"></i>
-                            <span class="font-medium">Python</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-yellow-400 w-full">
-                            <i class="fa-brands fa-js w-5 text-center opacity-70"></i>
-                            <span class="font-medium">JavaScript</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-yellow-400 w-full">
-                            <i class="fa-solid fa-terminal w-5 text-center opacity-70"></i>
-                            <span class="font-medium">VBScript</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            <!-- Category 5: Giải trí & Cá nhân -->
-            <div class="glass-card rounded-2xl p-6 shadow-lg hover:border-gray-600 transition-colors md:col-span-2 lg:col-span-2">
-                <div class="flex items-center gap-3 mb-5 border-b border-gray-700/50 pb-3">
-                    <div class="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-400">
-                        <i class="fa-solid fa-gamepad text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-100">Giải trí & Cá nhân</h3>
-                </div>
-                <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <li>
-                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-pink-400 w-full">
-                            <i class="fa-solid fa-dragon w-5 text-center opacity-70"></i>
-                            <span class="font-medium">League of Legends</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-pink-400 w-full">
-                            <i class="fa-solid fa-crosshairs w-5 text-center opacity-70"></i>
-                            <span class="font-medium">PUBG PC</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-pink-400 w-full">
-                            <i class="fa-solid fa-route w-5 text-center opacity-70"></i>
-                            <span class="font-medium">Silkroad Online</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-pink-400 w-full">
-                            <i class="fa-solid fa-person-running w-5 text-center opacity-70"></i>
-                            <span class="font-medium">Chạy bộ</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-pink-400 w-full">
-                            <i class="fa-solid fa-utensils w-5 text-center opacity-70"></i>
-                            <span class="font-medium">Nấu ăn</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-            
         </div>
-    </main>
 
-    <script>
-        // Update Time and Date
-        function updateClock() {
-            const now = new Date();
-            
-            // Format Time
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            document.getElementById('clock').textContent = `${hours}:${minutes}:${seconds}`;
-            
-            // Format Date (Vietnamese format)
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            let dateString = now.toLocaleDateString('vi-VN', options);
-            // Capitalize first letter
-            dateString = dateString.charAt(0).toUpperCase() + dateString.slice(1);
-            document.getElementById('date').textContent = dateString;
+    </section>
 
-            // Update Greeting based on time of day
-            const greetingElement = document.getElementById('greeting');
-            const currentHour = now.getHours();
-            let greeting = 'Xin chào,';
-            
-            if (currentHour >= 5 && currentHour < 12) {
-                greeting = 'Chào buổi sáng,';
-            } else if (currentHour >= 12 && currentHour < 18) {
-                greeting = 'Chào buổi chiều,';
-            } else if (currentHour >= 18 && currentHour < 22) {
-                greeting = 'Chào buổi tối,';
-            } else {
-                greeting = 'Chào buổi đêm,';
-            }
-            
-            greetingElement.textContent = greeting;
-        }
+    <!-- MIDDLE BANNER (Blue section) -->
+    <section class="bg-secondary py-12 relative overflow-hidden">
+        <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 32px 32px;"></div>
+        <div class="container mx-auto px-4 text-center relative z-10 flex flex-col md:flex-row items-center justify-center gap-6">
+            <h2 class="text-2xl md:text-3xl font-bold text-white">LỚP HỌC TRỰC TUYẾN - MICROSOFT TEAMS</h2>
+            <a href="#" class="bg-white text-secondary px-8 py-2 rounded-full font-bold shadow-lg hover:bg-gray-50 transition">Vào lớp ngay</a>
+        </div>
+    </section>
 
-        // Initialize clock and update every second
-        updateClock();
-        setInterval(updateClock, 1000);
+    <!-- HIGHLIGHT PRODUCTS -->
+    <section class="py-20 bg-gray-50">
+        <div class="container mx-auto px-4 xl:px-8">
+            <div class="text-center mb-12">
+                <span class="text-secondary font-bold uppercase tracking-wider text-sm">Nổi bật</span>
+                <h2 class="text-3xl font-extrabold text-dark mt-2">Sản Phẩm Cốt Lõi</h2>
+            </div>
 
-        // Search Functionality
-        const searchInput = document.getElementById('searchInput');
-        searchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                const query = searchInput.value.trim();
-                if (query) {
-                    window.location.href = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-                }
-            }
-        });
-        
-        // Focus search on load for quick access
-        window.onload = function() {
-            searchInput.focus();
-        };
-    </script>
+            <div class="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                <!-- Product 1 -->
+                <div class="group relative rounded-2xl overflow-hidden shadow-lg aspect-video cursor-pointer">
+                    <img src="https://placehold.co/800x450/1e293b/38bdf8?text=Khoa+Hoc+E-learning" alt="E-learning" class="w-full h-full object-cover transition duration-500 group-hover:scale-105">
+                    <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent"></div>
+                    <div class="absolute bottom-0 left-0 p-6 md:p-8">
+                        <h3 class="text-2xl font-bold text-white mb-2">Hệ thống LMS Lâm Đồng</h3>
+                        <p class="text-gray-300 text-sm md:text-base">Nền tảng quản lý học tập trực tuyến, hỗ trợ giao bài tập và kiểm tra định kỳ.</p>
+                    </div>
+                </div>
+
+                <!-- Product 2 -->
+                <div class="group relative rounded-2xl overflow-hidden shadow-lg aspect-video cursor-pointer">
+                    <img src="https://placehold.co/800x450/7f1d1d/f87171?text=Hanh+Chinh+Cong" alt="Network" class="w-full h-full object-cover transition duration-500 group-hover:scale-105">
+                    <div class="absolute inset-0 bg-gradient-to-t from-red-900 via-red-900/40 to-transparent"></div>
+                    <div class="absolute bottom-0 left-0 p-6 md:p-8">
+                        <h3 class="text-2xl font-bold text-white mb-2">Cổng Hành Chính Điện Tử</h3>
+                        <p class="text-gray-300 text-sm md:text-base">Xử lý văn bản, điều hành tác nghiệp nội bộ liên thông toàn Sở GD&ĐT.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SUPPORT TEAM / ADVISORS -->
+    <section class="py-20 bg-white">
+        <div class="container mx-auto px-4 xl:px-8">
+            <div class="text-center mb-16">
+                <span class="text-primary font-bold uppercase tracking-wider text-sm">Hỗ trợ</span>
+                <h2 class="text-3xl font-extrabold text-dark mt-2">Đội ngũ Kỹ thuật Cốt cán</h2>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 max-w-4xl mx-auto text-center">
+                
+                <!-- Person 1 -->
+                <div>
+                    <div class="w-40 h-40 mx-auto rounded-2xl bg-blue-100 overflow-hidden mb-4 p-1 shadow-md">
+                        <img src="https://placehold.co/200x200/93c5fd/1e3a8a?text=Avatar+1" alt="NV" class="w-full h-full object-cover rounded-xl">
+                    </div>
+                    <h4 class="font-bold text-lg text-dark">Thầy Lê Tiến Đạt</h4>
+                    <p class="text-sm text-gray-500">Chuyên viên CNTT Sở GD&ĐT</p>
+                    <p class="text-xs text-gray-400 mt-2">Phụ trách: Hệ thống SMAS, CSDL Ngành</p>
+                </div>
+
+                <!-- Person 2 -->
+                <div>
+                    <div class="w-40 h-40 mx-auto rounded-2xl bg-green-100 overflow-hidden mb-4 p-1 shadow-md">
+                        <img src="https://placehold.co/200x200/86efac/14532d?text=Avatar+2" alt="NV" class="w-full h-full object-cover rounded-xl">
+                    </div>
+                    <h4 class="font-bold text-lg text-dark">Cô Nguyễn T. Thu Thủy</h4>
+                    <p class="text-sm text-gray-500">Tổ trưởng Tổ Đào tạo số</p>
+                    <p class="text-xs text-gray-400 mt-2">Phụ trách: Học liệu điện tử, Tập huấn AI</p>
+                </div>
+
+                <!-- Person 3 -->
+                <div class="sm:col-span-2 md:col-span-1">
+                    <div class="w-40 h-40 mx-auto rounded-2xl bg-orange-100 overflow-hidden mb-4 p-1 shadow-md">
+                        <img src="https://placehold.co/200x200/fdba74/7c2d12?text=Avatar+3" alt="NV" class="w-full h-full object-cover rounded-xl">
+                    </div>
+                    <h4 class="font-bold text-lg text-dark">KS. Trần Trọng Hùng</h4>
+                    <p class="text-sm text-gray-500">Quản trị Hệ thống Server</p>
+                    <p class="text-xs text-gray-400 mt-2">Phụ trách: Mạng, Microsoft 365, Teams</p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- NEWS & EVENTS SECTION -->
+    <section class="py-20 bg-gray-50 border-t border-gray-100">
+        <div class="container mx-auto px-4 xl:px-8">
+            <div class="text-center mb-12">
+                <span class="text-secondary font-bold uppercase tracking-wider text-sm">Tin tức</span>
+                <h2 class="text-3xl font-extrabold text-dark mt-2">Sự kiện nổi bật</h2>
+            </div>
+
+            <div class="grid lg:grid-cols-12 gap-8 max-w-6xl mx-auto">
+                
+                <!-- Main News (Left) -->
+                <div class="lg:col-span-7 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden group">
+                    <div class="h-64 sm:h-80 w-full overflow-hidden">
+                        <img src="https://placehold.co/800x500/e2e8f0/475569?text=Hinh+Anh+Hoi+Thao" alt="Hội thảo" class="w-full h-full object-cover transition duration-500 group-hover:scale-105">
+                    </div>
+                    <div class="p-6">
+                        <div class="text-sm text-primary font-bold mb-2">04 Tháng 10, 2026</div>
+                        <h3 class="text-xl md:text-2xl font-bold text-dark mb-3 hover:text-primary transition-colors cursor-pointer">
+                            Lâm Đồng tổ chức Hội thảo tập huấn ứng dụng AI trong quản lý giáo dục và soạn giảng.
+                        </h3>
+                        <p class="text-gray-600 line-clamp-3">Sáng nay, Sở Giáo dục và Đào tạo tỉnh Lâm Đồng phối hợp cùng các đối tác công nghệ tổ chức buổi tập huấn chuyên sâu cho hơn 300 Hiệu trưởng và Giáo viên cốt cán toàn tỉnh về việc sử dụng công cụ Trí tuệ nhân tạo (AI)...</p>
+                    </div>
+                </div>
+
+                <!-- Side News List (Right) -->
+                <div class="lg:col-span-5 flex flex-col justify-between gap-4">
+                    
+                    <!-- Side Item 1 -->
+                    <div class="flex gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition">
+                        <img src="https://placehold.co/200x150/e2e8f0/64748b?text=Tin+1" class="w-32 h-24 object-cover rounded-lg">
+                        <div class="flex-1">
+                            <h4 class="font-bold text-dark text-sm leading-snug hover:text-primary cursor-pointer line-clamp-2">Khai mạc cuộc thi Thiết kế Bài giảng E-learning cấp Tỉnh năm học 2025-2026</h4>
+                            <div class="text-xs text-gray-500 mt-2">01/10/2026</div>
+                        </div>
+                    </div>
+
+                    <!-- Side Item 2 -->
+                    <div class="flex gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition">
+                        <img src="https://placehold.co/200x150/e2e8f0/64748b?text=Tin+2" class="w-32 h-24 object-cover rounded-lg">
+                        <div class="flex-1">
+                            <h4 class="font-bold text-dark text-sm leading-snug hover:text-primary cursor-pointer line-clamp-2">100% Trường học tại TP. Đà Lạt hoàn thành đồng bộ dữ liệu Sổ điểm vnEdu</h4>
+                            <div class="text-xs text-gray-500 mt-2">28/09/2026</div>
+                        </div>
+                    </div>
+
+                    <!-- Side Item 3 -->
+                    <div class="flex gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition">
+                        <img src="https://placehold.co/200x150/e2e8f0/64748b?text=Tin+3" class="w-32 h-24 object-cover rounded-lg">
+                        <div class="flex-1">
+                            <h4 class="font-bold text-dark text-sm leading-snug hover:text-primary cursor-pointer line-clamp-2">Nâng cấp đường truyền mạng nội bộ cho các trường THCS vùng ven</h4>
+                            <div class="text-xs text-gray-500 mt-2">25/09/2026</div>
+                        </div>
+                    </div>
+
+                    <a href="#" class="text-center bg-gray-200 hover:bg-gray-300 text-dark font-semibold py-3 rounded-xl transition mt-2">
+                        Xem tất cả tin tức
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER / CTA -->
+    <footer class="bg-dark text-gray-300">
+        <!-- Top CTA Banner -->
+        <div class="bg-primary pt-10 pb-10">
+            <div class="container mx-auto px-4 text-center">
+                <h3 class="text-2xl font-bold text-white mb-6">ĐĂNG KÝ NHẬN TÀI LIỆU SỐ & THÔNG BÁO TẬP HUẤN</h3>
+                <div class="max-w-2xl mx-auto flex flex-col sm:flex-row gap-3 justify-center items-center">
+                    <input type="email" placeholder="Nhập email nội bộ (@lamdong.edu.vn)" class="w-full sm:w-2/3 px-4 py-3 rounded-full text-gray-800 outline-none focus:ring-4 focus:ring-primary_light">
+                    <button class="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-white font-bold px-8 py-3 rounded-full transition shadow-lg text-nowrap">
+                        Đăng ký ngay
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Footer Links -->
+        <div class="container mx-auto px-4 py-12 border-b border-gray-800">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <a href="#" class="flex items-center gap-2 mb-4">
+                        <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-primary text-lg">
+                            <i class="fa-solid fa-leaf"></i>
+                        </div>
+                        <span class="text-xl font-bold text-white">LamDongEdu</span>
+                    </a>
+                    <p class="text-sm text-gray-400 leading-relaxed mb-4">
+                        Cổng thông tin Điện tử - Hỗ trợ Chuyển đổi số Giáo dục tỉnh Lâm Đồng. Vận hành bởi Tổ Công nghệ Thông tin.
+                    </p>
+                    <div class="flex gap-4">
+                        <a href="#" class="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary transition"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="#" class="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary transition"><i class="fa-brands fa-youtube"></i></a>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="text-white font-bold mb-4 uppercase text-sm tracking-wider">Liên kết nhanh</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="hover:text-primary transition">Trang chủ Sở GD&ĐT Lâm Đồng</a></li>
+                        <li><a href="#" class="hover:text-primary transition">Hệ thống vnEdu</a></li>
+                        <li><a href="#" class="hover:text-primary transition">Cơ sở dữ liệu Ngành</a></li>
+                        <li><a href="#" class="hover:text-primary transition">Hỗ trợ kỹ thuật IT</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-white font-bold mb-4 uppercase text-sm tracking-wider">Liên hệ</h4>
+                    <ul class="space-y-3 text-sm">
+                        <li class="flex gap-3"><i class="fa-solid fa-location-dot mt-1 text-primary"></i> 03 Trần Phú, Phường 3, TP. Đà Lạt, Lâm Đồng</li>
+                        <li class="flex gap-3"><i class="fa-solid fa-phone text-primary"></i> 0263.3123.456</li>
+                        <li class="flex gap-3"><i class="fa-solid fa-envelope text-primary"></i> hotro.it@lamdong.edu.vn</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Copyright -->
+        <div class="text-center py-6 text-sm text-gray-500">
+            &copy; 2026 LamDongEdu. Thiết kế để hỗ trợ nghiệp vụ Giáo viên. (Demo phi thương mại)
+        </div>
+    </footer>
+
 </body>
 </html>
