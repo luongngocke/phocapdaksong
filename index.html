@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homepage | Lê Ngọc Cường</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        darker: '#0b0f19',
+                        dark: '#111827',
+                        card: '#1f2937',
+                        primary: '#0ea5e9',
+                        accent: '#38bdf8',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: theme('colors.darker');
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(217, 100%, 16%, 0.5) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, hsla(217, 100%, 16%, 0.5) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: #f3f4f6;
+        }
+        
+        .glass-card {
+            background: rgba(31, 41, 55, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .link-item {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .link-item:hover {
+            transform: translateX(4px);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4b5563; 
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4 sm:p-8 font-sans selection:bg-primary selection:text-white">
+
+    <main class="w-full max-w-6xl w-full flex-grow flex flex-col gap-8">
+        
+        <!-- Header Section: Clock and Greeting -->
+        <header class="flex flex-col md:flex-row items-center justify-between gap-6 w-full glass-card p-8 rounded-3xl shadow-2xl shadow-black/50 border border-gray-800">
+            <div class="flex flex-col items-center md:items-start space-y-1">
+                <h2 id="greeting" class="text-2xl sm:text-3xl font-light text-gray-300">Xin chào,</h2>
+                <h1 class="text-4xl sm:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-accent to-blue-500">Lê Ngọc Cường</h1>
+                <p class="text-gray-400 mt-2 text-sm md:text-base flex items-center gap-2">
+                    <i class="fa-solid fa-terminal text-xs"></i> IT Professional & Educator
+                </p>
+            </div>
+            
+            <div class="flex flex-col items-center md:items-end">
+                <div id="clock" class="text-5xl sm:text-7xl font-mono font-bold tracking-tight text-white drop-shadow-[0_0_15px_rgba(14,165,233,0.3)]">
+                    00:00:00
+                </div>
+                <div id="date" class="text-gray-400 text-lg sm:text-xl font-medium mt-2 capitalize">
+                    Đang tải ngày tháng...
+                </div>
+            </div>
+        </header>
+
+        <!-- Search Bar -->
+        <div class="w-full max-w-2xl mx-auto relative group">
+            <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400 group-focus-within:text-accent transition-colors">
+                <i class="fa-brands fa-google"></i>
+            </div>
+            <input type="text" id="searchInput" 
+                class="w-full bg-gray-800/80 border border-gray-700 text-gray-100 text-lg rounded-2xl focus:ring-2 focus:ring-accent focus:border-accent block pl-12 p-4 shadow-lg transition-all placeholder-gray-500 outline-none backdrop-blur-sm" 
+                placeholder="Tìm kiếm trên Google..." autocomplete="off">
+            <div class="absolute inset-y-0 right-0 flex items-center pr-4 text-xs text-gray-500 font-mono">
+                Press Enter
+            </div>
+        </div>
+
+        <!-- Categories Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+            
+            <!-- Category 1: Tin học Cường Tín -->
+            <div class="glass-card rounded-2xl p-6 shadow-lg hover:border-gray-600 transition-colors">
+                <div class="flex items-center gap-3 mb-5 border-b border-gray-700/50 pb-3">
+                    <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
+                        <i class="fa-solid fa-briefcase text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-100">Tin học Cường Tín</h3>
+                </div>
+                <ul class="space-y-2">
+                    <li>
+                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-accent w-full">
+                            <i class="fa-solid fa-file-excel w-5 text-center opacity-70"></i>
+                            <span class="font-medium">AppSheet Inventory</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-accent w-full">
+                            <i class="fa-solid fa-video w-5 text-center opacity-70"></i>
+                            <span class="font-medium">Camera DDNS</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-accent w-full">
+                            <i class="fa-solid fa-file-invoice-dollar w-5 text-center opacity-70"></i>
+                            <span class="font-medium">Invoicing</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Category 2: Giảng dạy -->
+            <div class="glass-card rounded-2xl p-6 shadow-lg hover:border-gray-600 transition-colors">
+                <div class="flex items-center gap-3 mb-5 border-b border-gray-700/50 pb-3">
+                    <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                        <i class="fa-solid fa-chalkboard-user text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-100">Giảng dạy</h3>
+                </div>
+                <ul class="space-y-2">
+                    <li>
+                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-emerald-400 w-full">
+                            <i class="fa-solid fa-school w-5 text-center opacity-70"></i>
+                            <span class="font-medium">Trường TH Lương Thế Vinh</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-emerald-400 w-full">
+                            <i class="fa-solid fa-globe w-5 text-center opacity-70"></i>
+                            <span class="font-medium">Đại sứ số</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-emerald-400 w-full">
+                            <i class="fa-solid fa-address-card w-5 text-center opacity-70"></i>
+                            <span class="font-medium">Enrollment Portal</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Category 3: Server & Network -->
+            <div class="glass-card rounded-2xl p-6 shadow-lg hover:border-gray-600 transition-colors">
+                <div class="flex items-center gap-3 mb-5 border-b border-gray-700/50 pb-3">
+                    <div class="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-400">
+                        <i class="fa-solid fa-server text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-100">Server & Network</h3>
+                </div>
+                <ul class="space-y-2">
+                    <li>
+                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-orange-400 w-full">
+                            <i class="fa-brands fa-cloudflare w-5 text-center opacity-70"></i>
+                            <span class="font-medium">Cloudflare</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-orange-400 w-full">
+                            <i class="fa-solid fa-bolt w-5 text-center opacity-70"></i>
+                            <span class="font-medium">Vercel</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-orange-400 w-full">
+                            <i class="fa-brands fa-wordpress w-5 text-center opacity-70"></i>
+                            <span class="font-medium">WordPress</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Category 4: Dev & Scripts -->
+            <div class="glass-card rounded-2xl p-6 shadow-lg hover:border-gray-600 transition-colors">
+                <div class="flex items-center gap-3 mb-5 border-b border-gray-700/50 pb-3">
+                    <div class="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center text-yellow-400">
+                        <i class="fa-solid fa-code text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-100">Dev & Scripts</h3>
+                </div>
+                <ul class="space-y-2">
+                    <li>
+                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-yellow-400 w-full">
+                            <i class="fa-brands fa-python w-5 text-center opacity-70"></i>
+                            <span class="font-medium">Python</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-yellow-400 w-full">
+                            <i class="fa-brands fa-js w-5 text-center opacity-70"></i>
+                            <span class="font-medium">JavaScript</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-yellow-400 w-full">
+                            <i class="fa-solid fa-terminal w-5 text-center opacity-70"></i>
+                            <span class="font-medium">VBScript</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Category 5: Giải trí & Cá nhân -->
+            <div class="glass-card rounded-2xl p-6 shadow-lg hover:border-gray-600 transition-colors md:col-span-2 lg:col-span-2">
+                <div class="flex items-center gap-3 mb-5 border-b border-gray-700/50 pb-3">
+                    <div class="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-400">
+                        <i class="fa-solid fa-gamepad text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-100">Giải trí & Cá nhân</h3>
+                </div>
+                <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <li>
+                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-pink-400 w-full">
+                            <i class="fa-solid fa-dragon w-5 text-center opacity-70"></i>
+                            <span class="font-medium">League of Legends</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-pink-400 w-full">
+                            <i class="fa-solid fa-crosshairs w-5 text-center opacity-70"></i>
+                            <span class="font-medium">PUBG PC</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-pink-400 w-full">
+                            <i class="fa-solid fa-route w-5 text-center opacity-70"></i>
+                            <span class="font-medium">Silkroad Online</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-pink-400 w-full">
+                            <i class="fa-solid fa-person-running w-5 text-center opacity-70"></i>
+                            <span class="font-medium">Chạy bộ</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="link-item flex items-center gap-3 p-2 rounded-lg text-gray-300 hover:text-pink-400 w-full">
+                            <i class="fa-solid fa-utensils w-5 text-center opacity-70"></i>
+                            <span class="font-medium">Nấu ăn</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            
+        </div>
+    </main>
+
+    <script>
+        // Update Time and Date
+        function updateClock() {
+            const now = new Date();
+            
+            // Format Time
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('clock').textContent = `${hours}:${minutes}:${seconds}`;
+            
+            // Format Date (Vietnamese format)
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            let dateString = now.toLocaleDateString('vi-VN', options);
+            // Capitalize first letter
+            dateString = dateString.charAt(0).toUpperCase() + dateString.slice(1);
+            document.getElementById('date').textContent = dateString;
+
+            // Update Greeting based on time of day
+            const greetingElement = document.getElementById('greeting');
+            const currentHour = now.getHours();
+            let greeting = 'Xin chào,';
+            
+            if (currentHour >= 5 && currentHour < 12) {
+                greeting = 'Chào buổi sáng,';
+            } else if (currentHour >= 12 && currentHour < 18) {
+                greeting = 'Chào buổi chiều,';
+            } else if (currentHour >= 18 && currentHour < 22) {
+                greeting = 'Chào buổi tối,';
+            } else {
+                greeting = 'Chào buổi đêm,';
+            }
+            
+            greetingElement.textContent = greeting;
+        }
+
+        // Initialize clock and update every second
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // Search Functionality
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const query = searchInput.value.trim();
+                if (query) {
+                    window.location.href = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+                }
+            }
+        });
+        
+        // Focus search on load for quick access
+        window.onload = function() {
+            searchInput.focus();
+        };
+    </script>
+</body>
+</html>
