@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chuyển Đổi Chữ Viết Tay Thành Văn Bản</title>
+    <!-- Nhúng Tailwind CSS để thiết kế giao diện hiện đại -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Nhúng Font Awesome cho các icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Nhúng Google Fonts (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        /* Loading spinner animation */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Custom scrollbar cho textarea */
+        textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col items-center py-8 px-4 sm:px-6 lg:px-8">
+
+    <header class="max-w-5xl w-full text-center mb-8">
+        <div class="inline-flex items-center justify-center p-3 bg-brand-100 text-brand-600 rounded-2xl mb-4 shadow-sm">
+            <i class="fa-solid fa-wand-magic-sparkles text-2xl"></i>
+        </div>
+        <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 mb-2">Nhận Diện Chữ Viết Tay Thông Minh</h1>
+        <p class="text-slate-500 max-w-2xl mx-auto text-sm md:text-base">
+            Sử dụng công nghệ AI của Google Gemini để chuyển đổi hình ảnh chứa chữ viết tay hoặc tài liệu in thành văn bản đánh máy có thể chỉnh sửa dễ dàng.
+        </p>
+    </header>
+
+    <main class="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-8 relative">
+        
+        <!-- Cột Trái: Khu vực Đầu vào (Camera / Upload) -->
+        <section class="glass-panel rounded-3xl p-6 flex flex-col h-[600px]">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-camera text-brand-500"></i> Nguồn Ảnh
+                </h2>
+                <!-- Tabs chuyển đổi chế độ -->
+                <div class="flex bg-slate-100 p-1 rounded-lg">
+                    <button id="tabCamera" class="px-4 py-1.5 text-sm font-medium rounded-md bg-white shadow-sm text-brand-600 transition-all" onclick="switchMode('camera')">
+                        Camera
+                    </button>
+                    <button id="tabUpload" class="px-4 py-1.5 text-sm font-medium rounded-md text-slate-500 hover:text-slate-700 transition-all" onclick="switchMode('upload')">
+                        Tải Lên
+                    </button>
+                </div>
+            </div>
+
+            <div class="relative flex-grow bg-slate-900 rounded-2xl overflow-hidden mb-4 flex items-center justify-center shadow-inner group">
+                <!-- Video Stream -->
+                <video id="cameraStream" class="w-full h-full object-cover absolute inset-0 z-10" autoplay playsinline></video>
+                
+                <!-- Image Preview (Hiển thị ảnh đã chụp hoặc upload) -->
+                <img id="imagePreview" class="w-full h-full object-contain absolute inset-0 z-20 hidden bg-slate-900" src="" alt="Preview">
+                
+                <!-- Thông báo trạng thái -->
+                <div id="statusOverlay" class="absolute z-30 flex flex-col items-center justify-center text-white/70">
+                    <i class="fa-solid fa-video-slash text-4xl mb-2"></i>
+                    <p class="text-sm">Camera đang tắt</p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-3 mt-auto">
+                <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+                
+                <!-- Các nút cho chế độ Camera -->
+                <div id="cameraControls" class="flex w-full gap-3">
+                    <button id="btnToggleCamera" onclick="toggleCamera()" class="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-video"></i> Bật Camera
+                    </button>
+                    <button id="btnCapture" onclick="captureImage()" disabled class="flex-[2] py-3 px-4 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors shadow-md shadow-brand-500/30 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-camera-retro"></i> Chụp Ngay
+                    </button>
+                </div>
+
+                <!-- Các nút cho chế độ Upload -->
+                <div id="uploadControls" class="hidden w-full gap-3">
+                    <button onclick="document.getElementById('fileInput').click()" class="flex-1 py-3 px-4 border-2 border-dashed border-brand-300 bg-brand-50 hover:bg-brand-100 text-brand-700 font-medium rounded-xl transition-colors flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Chọn Ảnh Từ Máy
+                    </button>
+                </div>
+                
+                <!-- Nút Xóa Ảnh (Dùng chung) -->
+                <button id="btnClearImage" onclick="clearImage()" class="hidden w-full py-3 px-4 bg-red-50 hover:bg-red-100 text-red-600 font-medium rounded-xl transition-colors flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-trash-can"></i> Xóa Ảnh Hiện Tại
+                </button>
+            </div>
+            
+            <!-- Canvas ẩn để lấy dữ liệu ảnh từ video -->
+            <canvas id="hiddenCanvas" class="hidden"></canvas>
+        </section>
+
+        <section class="glass-panel rounded-3xl p-6 flex flex-col h-[600px]">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-file-lines text-brand-500"></i> Kết Quả Văn Bản
+                </h2>
+                <!-- Nút công cụ cho kết quả -->
+                <div class="flex gap-2">
+                    <button onclick="clearText()" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Xóa văn bản">
+                        <i class="fa-solid fa-eraser"></i>
+                    </button>
+                    <button onclick="copyToClipboard()" class="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors flex items-center gap-2" title="Sao chép">
+                        <i class="fa-regular fa-copy"></i> <span class="text-sm font-medium hidden sm:inline">Sao chép</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Khung chứa textarea có hiệu ứng loading overlay -->
+            <div class="relative flex-grow flex flex-col rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-brand-500 transition-all">
+                <textarea id="resultText" class="w-full h-full p-5 resize-none outline-none text-slate-700 leading-relaxed placeholder:text-slate-300 text-base md:text-lg" placeholder="Văn bản trích xuất sẽ hiển thị tại đây. Bạn có thể chỉnh sửa trực tiếp..."></textarea>
+                
+                <!-- Loading Overlay (Hiển thị khi API đang xử lý) -->
+                <div id="processingOverlay" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center hidden opacity-0 transition-opacity duration-300">
+                    <div class="loader mb-4"></div>
+                    <p class="text-brand-600 font-medium animate-pulse text-sm">AI đang phân tích chữ viết...</p>
+                    <p class="text-xs text-slate-500 mt-2">Quá trình này có thể mất vài giây</p>
+                </div>
+            </div>
+            
+            <!-- Nút gửi lại (Thử lại nếu lỗi hoặc muốn quét lại) -->
+            <button id="btnProcess" onclick="processCurrentBase64()" disabled class="mt-4 w-full py-3 px-4 bg-slate-800 hover:bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors shadow-md flex items-center justify-center gap-2">
+                <i class="fa-solid fa-microchip"></i> Bắt Đầu Nhận Diện AI
+            </button>
+        </section>
+        
+    </main>
+
+    <!-- Hộp thoại thông báo (Toast/Message Box) -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        // Các biến UI HTML elements
+        const videoElement = document.getElementById('cameraStream');
+        const canvasElement = document.getElementById('hiddenCanvas');
+        const imagePreview = document.getElementById('imagePreview');
+        const statusOverlay = document.getElementById('statusOverlay');
+        const btnToggleCamera = document.getElementById('btnToggleCamera');
+        const btnCapture = document.getElementById('btnCapture');
+        const btnClearImage = document.getElementById('btnClearImage');
+        const btnProcess = document.getElementById('btnProcess');
+        const resultText = document.getElementById('resultText');
+        const processingOverlay = document.getElementById('processingOverlay');
+        const fileInput = document.getElementById('fileInput');
+
+        const tabCamera = document.getElementById('tabCamera');
+        const tabUpload = document.getElementById('tabUpload');
+        const cameraControls = document.getElementById('cameraControls');
+        const uploadControls = document.getElementById('uploadControls');
+
+        // Trạng thái ứng dụng
+        let stream = null;
+        let isCameraActive = false;
+        let currentMode = 'camera'; // 'camera' or 'upload'
+        let currentBase64Image = null; // Lưu trữ ảnh hiện tại dưới dạng base64 để gửi lên API
+
+        // Hàm tiện ích: Hiển thị thông báo (Toast message)
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            // Chọn màu dựa trên loại thông báo
+            let bgColor = 'bg-slate-800';
+            let icon = 'fa-info-circle';
+            if (type === 'success') { bgColor = 'bg-emerald-600'; icon = 'fa-check-circle'; }
+            if (type === 'error') { bgColor = 'bg-red-600'; icon = 'fa-exclamation-circle'; }
+            if (type === 'warning') { bgColor = 'bg-amber-500'; icon = 'fa-triangle-exclamation'; }
+
+            toast.className = `${bgColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transform translate-y-full opacity-0 transition-all duration-300 ease-out pointer-events-auto`;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span class="text-sm font-medium">${message}</span>`;
+            
+            toastContainer.appendChild(toast);
+            
+            // Animation hiện
+            setTimeout(() => {
+                toast.classList.remove('translate-y-full', 'opacity-0');
+            }, 10);
+
+            // Tự động xóa sau 3 giây
+            setTimeout(() => {
+                toast.classList.add('translate-y-full', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function switchMode(mode) {
+            if (currentMode === mode) return;
+            currentMode = mode;
+
+            // Cập nhật UI của Tabs
+            if (mode === 'camera') {
+                tabCamera.className = "px-4 py-1.5 text-sm font-medium rounded-md bg-white shadow-sm text-brand-600 transition-all";
+                tabUpload.className = "px-4 py-1.5 text-sm font-medium rounded-md text-slate-500 hover:text-slate-700 transition-all";
+                cameraControls.classList.remove('hidden');
+                cameraControls.classList.add('flex');
+                uploadControls.classList.add('hidden');
+                
+                // Nếu chưa có ảnh nào được giữ, cố gắng khôi phục lại trạng thái camera
+                if (!currentBase64Image && !isCameraActive) {
+                    statusOverlay.style.display = 'flex';
+                }
+            } else {
+                tabUpload.className = "px-4 py-1.5 text-sm font-medium rounded-md bg-white shadow-sm text-brand-600 transition-all";
+                tabCamera.className = "px-4 py-1.5 text-sm font-medium rounded-md text-slate-500 hover:text-slate-700 transition-all";
+                uploadControls.classList.remove('hidden');
+                uploadControls.classList.add('flex');
+                cameraControls.classList.add('hidden');
+                cameraControls.classList.remove('flex');
+                
+                // Tắt camera nếu đang bật để tiết kiệm pin khi sang chế độ upload
+                if (isCameraActive) {
+                    stopCamera();
+                }
+                
+                if (!currentBase64Image) {
+                    statusOverlay.innerHTML = '<i class="fa-solid fa-image text-4xl mb-2"></i><p class="text-sm">Chưa có ảnh nào</p>';
+                    statusOverlay.style.display = 'flex';
+                }
+            }
+        }
+
+        async function toggleCamera() {
+            if (isCameraActive) {
+                stopCamera();
+            } else {
+                await startCamera();
+            }
+        }
+
+        async function startCamera() {
+            try {
+                // Yêu cầu ưu tiên camera sau (environment) trên thiết bị di động
+                const constraints = {
+                    video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+                    audio: false
+                };
+                
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoElement.srcObject = stream;
+                
+                // Cập nhật UI
+                isCameraActive = true;
+                btnToggleCamera.innerHTML = '<i class="fa-solid fa-video-slash text-red-500"></i> Tắt Camera';
+                btnToggleCamera.classList.replace('bg-slate-100', 'bg-red-50');
+                btnToggleCamera.classList.replace('hover:bg-slate-200', 'hover:bg-red-100');
+                btnToggleCamera.classList.replace('text-slate-700', 'text-red-700');
+                
+                btnCapture.disabled = false;
+                statusOverlay.style.display = 'none';
+                imagePreview.classList.add('hidden');
+                
+                // Xóa ảnh cũ nếu có khi bật lại camera
+                currentBase64Image = null;
+                btnProcess.disabled = true;
+                
+            } catch (err) {
+                console.error("Lỗi khi mở camera: ", err);
+                showToast("Không thể truy cập Camera. Vui lòng kiểm tra quyền trên trình duyệt.", "error");
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                videoElement.srcObject = null;
+            }
+            isCameraActive = false;
+            
+            // Cập nhật UI
+            btnToggleCamera.innerHTML = '<i class="fa-solid fa-video"></i> Bật Camera';
+            btnToggleCamera.classList.replace('bg-red-50', 'bg-slate-100');
+            btnToggleCamera.classList.replace('hover:bg-red-100', 'hover:bg-slate-200');
+            btnToggleCamera.classList.replace('text-red-700', 'text-slate-700');
+            
+            btnCapture.disabled = true;
+            
+            // Nếu không có ảnh nào đang preview, hiện overlay
+            if (!currentBase64Image) {
+                statusOverlay.innerHTML = '<i class="fa-solid fa-video-slash text-4xl mb-2"></i><p class="text-sm">Camera đang tắt</p>';
+                statusOverlay.style.display = 'flex';
+            }
+        }
+
+        function captureImage() {
+            if (!isCameraActive) return;
+
+            // Thiết lập kích thước canvas bằng với kích thước video
+            canvasElement.width = videoElement.videoWidth;
+            canvasElement.height = videoElement.videoHeight;
+            
+            const ctx = canvasElement.getContext('2d');
+            ctx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+            
+            // Chuyển canvas thành chuỗi Base64
+            const dataUrl = canvasElement.toDataURL('image/jpeg', 0.9);
+            setImageForProcessing(dataUrl);
+            
+            // Dừng camera sau khi chụp
+            stopCamera();
+            showToast("Đã chụp ảnh thành công!", "success");
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                showToast("Vui lòng chọn một tệp hình ảnh.", "error");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                setImageForProcessing(e.target.result);
+                showToast("Đã tải ảnh lên!", "success");
+            };
+            reader.onerror = function() {
+                showToast("Lỗi khi đọc tệp.", "error");
+            };
+            reader.readAsDataURL(file);
+            
+            // Reset input file để có thể chọn lại cùng 1 file nếu cần
+            fileInput.value = '';
+        }
+
+        // Hàm chung để thiết lập ảnh đã sẵn sàng xử lý
+        function setImageForProcessing(dataUrl) {
+            currentBase64Image = dataUrl;
+            
+            // Hiển thị Preview
+            imagePreview.src = dataUrl;
+            imagePreview.classList.remove('hidden');
+            statusOverlay.style.display = 'none';
+            
+            // Cập nhật nút bấm UI
+            if (currentMode === 'camera') {
+                cameraControls.classList.add('hidden');
+            } else {
+                uploadControls.classList.add('hidden');
+            }
+            btnClearImage.classList.remove('hidden');
+            btnClearImage.classList.add('flex');
+            
+            btnProcess.disabled = false;
+            
+            // Tùy chọn: Tự động chạy nhận diện sau khi chọn ảnh
+            processCurrentBase64();
+        }
+
+        function clearImage() {
+            currentBase64Image = null;
+            imagePreview.src = '';
+            imagePreview.classList.add('hidden');
+            
+            btnClearImage.classList.add('hidden');
+            btnClearImage.classList.remove('flex');
+            btnProcess.disabled = true;
+            
+            if (currentMode === 'camera') {
+                cameraControls.classList.remove('hidden');
+                cameraControls.classList.add('flex');
+                statusOverlay.innerHTML = '<i class="fa-solid fa-video-slash text-4xl mb-2"></i><p class="text-sm">Camera đang tắt</p>';
+                statusOverlay.style.display = 'flex';
+            } else {
+                uploadControls.classList.remove('hidden');
+                uploadControls.classList.add('flex');
+                statusOverlay.innerHTML = '<i class="fa-solid fa-image text-4xl mb-2"></i><p class="text-sm">Chưa có ảnh nào</p>';
+                statusOverlay.style.display = 'flex';
+            }
+        }
+
+        async function processCurrentBase64() {
+            if (!currentBase64Image) {
+                showToast("Vui lòng chụp hoặc tải ảnh lên trước.", "warning");
+                return;
+            }
+
+            // Tách phần data khỏi chuỗi base64 "data:image/jpeg;base64,..."
+            const base64Data = currentBase64Image.split(',')[1];
+            // Lấy mimetype thực tế
+            const mimeTypeMatch = currentBase64Image.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/);
+            const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : 'image/jpeg';
+
+            // Giao diện: Hiện trạng thái đang xử lý
+            setProcessingState(true);
+            
+            const prompt = "Bạn là một công cụ OCR (Nhận dạng ký tự quang học) xuất sắc. Hãy đọc và trích xuất toàn bộ chữ viết tay hoặc chữ in trong hình ảnh này. Chỉ trả về chính xác nội dung văn bản đã nhận dạng được, cố gắng giữ nguyên bố cục đoạn văn, không thêm bất kỳ lời bình luận, giải thích hay định dạng markdown nào khác.";
+            
+            // Theo hướng dẫn hệ thống, sử dụng mô hình gemini-3-flash-preview cho xử lý ảnh.
+            const apiKey = ""; // API Key sẽ được môi trường Canvas tự động tiêm vào
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+            
+            const payload = {
+                contents: [
+                    {
+                        role: "user",
+                        parts: [
+                            { text: prompt },
+                            {
+                                inlineData: {
+                                    mimeType: mimeType,
+                                    data: base64Data
+                                }
+                            }
+                        ]
+                    }
+                ],
+            };
+
+            try {
+                // Retry cơ bản (Exponential backoff) như hướng dẫn
+                const fetchWithRetry = async (url, options, retries = 3, delay = 1000) => {
+                    for (let i = 0; i < retries; i++) {
+                        try {
+                            const res = await fetch(url, options);
+                            if (!res.ok) {
+                                if (res.status === 429 && i < retries - 1) {
+                                    await new Promise(r => setTimeout(r, delay));
+                                    delay *= 2;
+                                    continue;
+                                }
+                                throw new Error(`HTTP error! status: ${res.status}`);
+                            }
+                            return res;
+                        } catch (e) {
+                            if (i === retries - 1) throw e;
+                            await new Promise(r => setTimeout(r, delay));
+                            delay *= 2;
+                        }
+                    }
+                };
+
+                const response = await fetchWithRetry(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates.length > 0 && 
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    
+                    const extractedText = result.candidates[0].content.parts[0].text;
+                    resultText.value = extractedText.trim();
+                    showToast("Nhận diện thành công!", "success");
+                } else {
+                    throw new Error("Không thể trích xuất văn bản từ phản hồi của API.");
+                }
+
+            } catch (error) {
+                console.error("API Error:", error);
+                showToast("Đã xảy ra lỗi khi xử lý ảnh. Vui lòng thử lại.", "error");
+            } finally {
+                setProcessingState(false);
+            }
+        }
+
+        function setProcessingState(isProcessing) {
+            if (isProcessing) {
+                processingOverlay.classList.remove('hidden');
+                // Nhường 1 frame để trình duyệt áp dụng class remove('hidden') trước khi đổi opacity (cho animation smooth)
+                setTimeout(() => {
+                    processingOverlay.classList.remove('opacity-0');
+                    processingOverlay.classList.add('opacity-100');
+                }, 10);
+                
+                btnProcess.disabled = true;
+                btnProcess.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang Xử Lý...';
+                btnClearImage.disabled = true;
+                resultText.disabled = true;
+            } else {
+                processingOverlay.classList.remove('opacity-100');
+                processingOverlay.classList.add('opacity-0');
+                setTimeout(() => {
+                    processingOverlay.classList.add('hidden');
+                }, 300);
+                
+                btnProcess.disabled = false;
+                btnProcess.innerHTML = '<i class="fa-solid fa-microchip"></i> Bắt Đầu Nhận Diện AI';
+                btnClearImage.disabled = false;
+                resultText.disabled = false;
+            }
+        }
+
+        function clearText() {
+            if (resultText.value.trim() === '') return;
+            resultText.value = '';
+            showToast("Đã xóa văn bản.", "info");
+        }
+
+        function copyToClipboard() {
+            const text = resultText.value.trim();
+            if (!text) {
+                showToast("Không có nội dung để sao chép.", "warning");
+                return;
+            }
+            
+            // Sử dụng document.execCommand làm fallback tin cậy trong iframe/canvas
+            try {
+                resultText.select();
+                document.execCommand('copy');
+                // Deselect
+                window.getSelection().removeAllRanges();
+                showToast("Đã sao chép vào khay nhớ tạm!", "success");
+            } catch (err) {
+                console.error("Lỗi copy: ", err);
+                showToast("Lỗi khi sao chép. Vui lòng copy thủ công.", "error");
+            }
+        }
+        
+    </script>
+</body>
+</html>
