@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Thư viện hỗ trợ xuất PDF và Hình ảnh -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+      body { background-color: #f8f9fa; padding: 10px; font-size: 14px; }
+      .left-panel { background: white; padding: 15px; border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.1); height: 600px; overflow-y: auto;}
+      .right-panel { background: white; padding: 30px; border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.1); height: 600px; overflow-y: auto;}
+      .preview-title { color: #1a428a; text-align: center; font-weight: bold; }
+      .table-preview th { background-color: #1a428a; color: white; text-align: center; }
+      .btn-custom { background-color: #1a428a; color: white; }
+    </style>
+  </head>
+  <body>
+    <div class="container-fluid">
+      <div class="row">
+        
+        <!-- CỘT TRÁI: NHẬP LIỆU -->
+        <div class="col-md-5 left-panel">
+          <!-- Đã gắn hàm vào 3 nút bấm -->
+          <div class="d-flex justify-content-between mb-3">
+            <button class="btn btn-primary btn-sm" onclick="exportImage()">Xuất Hình Ảnh</button>
+            <button class="btn btn-danger btn-sm" onclick="exportPDF()">Xuất File PDF</button>
+            <button class="btn btn-success btn-sm" onclick="saveToSheet()" id="btnSave">Lưu Sheet</button>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label fw-bold">Thông tin khách hàng</label>
+            <input type="text" id="customerName" class="form-control mb-2" placeholder="Kính gửi / Tên khách hàng" oninput="updatePreview()">
+            <input type="text" id="customerAddress" class="form-control mb-2" placeholder="Địa chỉ" oninput="updatePreview()">
+            <input type="text" id="customerContact" class="form-control mb-2" placeholder="Người liên hệ / Điện thoại" oninput="updatePreview()">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">SẢN PHẨM</label>
+            <div class="input-group mb-2">
+              <select id="productSelect" class="form-select">
+                <option value="">-- Đang tải sản phẩm... --</option>
+              </select>
+              <button class="btn btn-custom" type="button" onclick="addProduct()">Thêm</button>
+            </div>
+            
+            <table class="table table-sm table-bordered mt-2" id="cartTable">
+              <thead><tr><th>Tên hàng</th><th width="60">SL</th><th width="50">Xóa</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Thuế suất VAT (%):</label>
+            <input type="number" id="vatRate" class="form-control" value="10" oninput="updateTotals()">
+          </div>
+        </div>
+
+        <!-- CỘT PHẢI: XEM TRƯỚC BÁO GIÁ (Khu vực này sẽ được xuất file) -->
+        <div class="col-md-7 right-panel" id="baoGiaContent">
+          <h3 class="preview-title">BẢNG BÁO GIÁ</h3>
+          <p class="text-center" style="font-style: italic;">Số: BG-<span id="bgDate"></span>-001 | Ngày <span id="bgDateCurrent"></span></p>
+          
+          <div class="mt-4 mb-4">
+            <div><strong>Kính gửi:</strong> <span id="prevName">......................................................</span></div>
+            <div><strong>Địa chỉ:</strong> <span id="prevAddress">......................................................</span></div>
+            <div><strong>Người liên hệ:</strong> <span id="prevContact">......................................................</span></div>
+          </div>
+
+          <table class="table table-bordered table-preview">
+            <thead>
+              <tr>
+                <th>STT</th>
+                <th>Tên sản phẩm / Yêu cầu kỹ thuật</th>
+                <th>ĐVT</th>
+                <th>SL</th>
+                <th>Đơn giá</th>
+                <th>Thành tiền</th>
+              </tr>
+            </thead>
+            <tbody id="previewBody">
+              <tr><td colspan="6" class="text-center">Chưa chọn sản phẩm</td></tr>
+            </tbody>
+          </table>
+
+          <div class="row mt-3">
+            <div class="col-6"></div>
+            <div class="col-6 text-end">
+              <div>Cộng tiền hàng: <strong id="subTotal">0 ₫</strong></div>
+              <div>Thuế GTGT (<span id="vatLabel">10</span>%): <strong id="vatTotal">0 ₫</strong></div>
+              <hr>
+              <div style="color: #1a428a; font-size: 1.2em;"><strong>Tổng thanh toán: <span id="grandTotal">0 ₫</span></strong></div>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+
+    <script>
+      let productsData = [];
+      let cart = [];
+
+      window.onload = function() {
+        let today = new Date();
+        document.getElementById('bgDate').innerText = today.getFullYear().toString() + (today.getMonth()+1).toString().padStart(2, '0');
+        document.getElementById('bgDateCurrent').innerText = today.toLocaleDateString('vi-VN');
+        google.script.run.withSuccessHandler(populateProducts).getProductList();
+      };
+
+      function populateProducts(data) {
+        productsData = data;
+        let select = document.getElementById('productSelect');
+        select.innerHTML = '<option value="">-- Chọn sản phẩm --</option>';
+        data.forEach((p, index) => {
+          let option = document.createElement('option');
+          option.value = index;
+          option.text = p.name + ' - ' + formatMoney(p.price);
+          select.appendChild(option);
+        });
+      }
+
+      function updatePreview() {
+        document.getElementById('prevName').innerText = document.getElementById('customerName').value || '......................................................';
+        document.getElementById('prevAddress').innerText = document.getElementById('customerAddress').value || '......................................................';
+        document.getElementById('prevContact').innerText = document.getElementById('customerContact').value || '......................................................';
+      }
+
+      function addProduct() {
+        let select = document.getElementById('productSelect');
+        if(select.value === "") return;
+        let product = productsData[select.value];
+        let existing = cart.find(item => item.id === product.id);
+        if(existing) {
+          existing.qty += 1;
+        } else {
+          cart.push({ ...product, qty: 1 });
+        }
+        renderCart();
+      }
+
+      function updateQty(index, val) {
+        cart[index].qty = parseInt(val) || 1;
+        renderCart();
+      }
+
+      function removeItem(index) {
+        cart.splice(index, 1);
+        renderCart();
+      }
+
+      function renderCart() {
+        let cartBody = document.querySelector('#cartTable tbody');
+        let previewBody = document.getElementById('previewBody');
+        
+        cartBody.innerHTML = '';
+        previewBody.innerHTML = '';
+        
+        if(cart.length === 0) {
+          previewBody.innerHTML = '<tr><td colspan="6" class="text-center">Chưa chọn sản phẩm</td></tr>';
+        } else {
+          cart.forEach((item, index) => {
+            cartBody.innerHTML += `
+              <tr>
+                <td>${item.name}</td>
+                <td><input type="number" class="form-control form-control-sm" value="${item.qty}" min="1" onchange="updateQty(${index}, this.value)"></td>
+                <td><button class="btn btn-danger btn-sm" onclick="removeItem(${index})">X</button></td>
+              </tr>
+            `;
+            let rowTotal = item.qty * item.price;
+            previewBody.innerHTML += `
+              <tr>
+                <td class="text-center">${index + 1}</td>
+                <td>${item.name}</td>
+                <td class="text-center">${item.unit}</td>
+                <td class="text-center">${item.qty}</td>
+                <td class="text-end">${formatMoney(item.price)}</td>
+                <td class="text-end">${formatMoney(rowTotal)}</td>
+              </tr>
+            `;
+          });
+        }
+        updateTotals();
+      }
+
+      function updateTotals() {
+        let subTotal = 0;
+        cart.forEach(item => subTotal += (item.qty * item.price));
+        let vatRate = parseFloat(document.getElementById('vatRate').value) || 0;
+        let vatTotal = subTotal * (vatRate / 100);
+        let grandTotal = subTotal + vatTotal;
+
+        document.getElementById('vatLabel').innerText = vatRate;
+        document.getElementById('subTotal').innerText = formatMoney(subTotal);
+        document.getElementById('vatTotal').innerText = formatMoney(vatTotal);
+        document.getElementById('grandTotal').innerText = formatMoney(grandTotal);
+      }
+
+      function formatMoney(amount) {
+        return amount.toLocaleString('vi-VN') + ' ₫';
+      }
+
+      // -----------------------------------------------------
+      // CÁC HÀM XỬ LÝ 3 NÚT BẤM (XUẤT HÌNH, XUẤT PDF, LƯU)
+      // -----------------------------------------------------
+
+      // 1. Xuất file PDF (Dùng thư viện html2pdf)
+      function exportPDF() {
+        if(cart.length === 0) { alert("Vui lòng thêm sản phẩm trước khi xuất!"); return; }
+        var element = document.getElementById('baoGiaContent');
+        var tenKhach = document.getElementById('customerName').value || "KhachHang";
+        var opt = {
+          margin:       0.3,
+          filename:     'BaoGia_' + tenKhach + '.pdf',
+          image:        { type: 'jpeg', quality: 0.98 },
+          html2canvas:  { scale: 2 }, // Tăng độ nét
+          jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+        // Ẩn thanh cuộn khi chụp PDF để tránh bị lỗi hiển thị
+        element.style.height = 'auto'; 
+        element.style.overflow = 'visible';
+        
+        html2pdf().set(opt).from(element).save().then(() => {
+            // Trả lại thanh cuộn sau khi tải xong
+            element.style.height = '600px'; 
+            element.style.overflowY = 'auto';
+        });
+      }
+
+      // 2. Xuất Hình Ảnh (Dùng thư viện html2canvas)
+      function exportImage() {
+        if(cart.length === 0) { alert("Vui lòng thêm sản phẩm trước khi xuất!"); return; }
+        var element = document.getElementById('baoGiaContent');
+        var tenKhach = document.getElementById('customerName').value || "KhachHang";
+        
+        // Ẩn thanh cuộn để chụp toàn bộ ảnh
+        element.style.height = 'auto'; 
+        element.style.overflow = 'visible';
+
+        html2canvas(element, { scale: 2 }).then(canvas => {
+          let link = document.createElement('a');
+          link.download = 'BaoGia_' + tenKhach + '.png';
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+          
+          // Trả lại thanh cuộn
+          element.style.height = '600px'; 
+          element.style.overflowY = 'auto';
+        });
+      }
+
+      // 3. Gửi dữ liệu về Code.gs để Lưu vào Sheet
+      function saveToSheet() {
+        if(cart.length === 0) { alert("Không có sản phẩm để lưu!"); return; }
+        
+        let btn = document.getElementById('btnSave');
+        btn.innerText = "Đang lưu...";
+        btn.disabled = true;
+
+        let customerInfo = {
+          name: document.getElementById('customerName').value,
+          address: document.getElementById('customerAddress').value,
+          contact: document.getElementById('customerContact').value
+        };
+        
+        let grandTotalStr = document.getElementById('grandTotal').innerText;
+
+        // Gọi hàm saveDataToSheet trong file Code.gs
+        google.script.run
+          .withSuccessHandler(function(message) {
+             alert(message);
+             btn.innerText = "Lưu Sheet";
+             btn.disabled = false;
+          })
+          .saveDataToSheet(customerInfo, cart, grandTotalStr);
+      }
+    </script>
+  </body>
+</html>
