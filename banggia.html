@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Báo Giá & Catalogue Camera Thông Minh</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff1f1',
+                            100: '#ffdfdf',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                        },
+                        navy: {
+                            800: '#111827',
+                            900: '#0b0f19',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            body {
+                background: white !important;
+                color: black !important;
+            }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased selection:bg-red-500 selection:text-white">
+
+    <!-- Header Navigation -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 bg-gradient-to-tr from-brand-600 to-amber-500 rounded-xl flex items-center justify-center text-white shadow-md shadow-brand-500/30">
+                    <i class="fa-solid fa-video text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg sm:text-xl text-slate-900 tracking-tight leading-none flex items-center gap-2">
+                        TIN HỌC CƯỜNG TÍN
+                        <span class="text-xs bg-red-100 text-red-700 font-semibold px-2 py-0.5 rounded-full border border-red-200">2026 Price</span>
+                    </h1>
+                    <p class="text-xs text-slate-500 font-medium">Báo giá theo gói & Xuất Catalogue in ấn tiêu chuẩn</p>
+                </div>
+            </div>
+
+            <!-- Actions Right -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button onclick="openGasConfigModal()" class="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition" title="Kết nối Google Sheet">
+                    <i class="fa-solid fa-table-cells text-emerald-600"></i>
+                    <span class="hidden md:inline">Google Sheet API</span>
+                </button>
+                <button onclick="refreshDataFromGas()" id="syncBtn" class="flex items-center justify-center w-8 h-8 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition" title="Làm mới dữ liệu từ Sheet">
+                    <i class="fa-solid fa-arrows-rotate text-slate-600" id="syncIcon"></i>
+                </button>
+                <button onclick="openCustomHotlineModal()" class="hidden md:flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+                    <i class="fa-solid fa-phone text-red-600"></i>
+                    <span id="headerHotlineText">Hotline: 0931.113.048</span>
+                </button>
+                <button onclick="toggleCartDrawer()" class="relative flex items-center gap-2.5 px-4 py-2.5 bg-gradient-to-r from-brand-600 to-red-600 hover:from-brand-700 hover:to-red-700 text-white font-semibold text-sm rounded-xl shadow-md shadow-brand-500/25 transition active:scale-95">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <span class="hidden sm:inline">Đơn hàng</span>
+                    <span id="cartCountBadge" class="w-5 h-5 bg-white text-brand-600 text-xs font-bold rounded-full flex items-center justify-center">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        
+        <!-- Status Bar Google Sheet -->
+        <div id="gasStatusAlert" class="hidden px-4 py-2.5 rounded-xl text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center justify-between">
+            <span class="flex items-center gap-2">
+                <i class="fa-solid fa-cloud-arrow-down text-emerald-600"></i>
+                <span id="gasStatusText">Đã đồng bộ giá trực tiếp từ Google Sheets</span>
+            </span>
+            <button onclick="openGasConfigModal()" class="underline font-bold hover:text-emerald-900">Đổi URL API</button>
+        </div>
+
+        <!-- Search & Filter Controls -->
+        <section class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+            <!-- Ô tìm kiếm -->
+            <div class="relative flex-1">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    oninput="filterCameras()" 
+                    placeholder="Tìm theo tên camera hoặc tag (F32P, Trong nhà, Ngoài trời, S7XEP...)" 
+                    class="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-slate-50 hover:bg-slate-100/80 focus:bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 transition"
+                >
+            </div>
+
+            <!-- Tổng số kết quả -->
+            <div class="flex items-center justify-between sm:justify-end gap-3 text-xs text-slate-500 font-semibold">
+                <span>Kết quả: <span id="productResultCount" class="font-extrabold text-brand-600 text-sm">0 sản phẩm</span></span>
+            </div>
+        </section>
+
+        <!-- BỘ LỌC ĐIỀU KIỆN VÀ (AND LOGIC) BẰNG NÚT TÍCH (CHECKBOX) -->
+        <section class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-4 bg-brand-600 rounded"></span>
+                    <span class="text-xs sm:text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-filter text-brand-600"></i>
+                        Lọc theo điều kiện (Thỏa mãn đồng thời các nút tích):
+                    </span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="activeFilterBadge" class="hidden text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
+                        Đang chọn <span id="activeTagCount">0</span> điều kiện
+                    </span>
+                    <button onclick="clearAllTagFilters()" id="clearFiltersBtn" class="hidden text-xs text-red-600 hover:text-red-700 font-bold px-2 py-1 rounded-lg hover:bg-red-50 border border-red-200 transition items-center gap-1">
+                        <i class="fa-solid fa-arrow-rotate-left"></i> Bỏ chọn tất cả
+                    </button>
+                </div>
+            </div>
+
+            <!-- Danh sách các nút tích (Checkbox) sinh tự động từ thẻ Tag của Google Sheets -->
+            <div class="flex flex-wrap items-center gap-2.5 pt-1" id="categoryFilters">
+                <span class="text-xs text-slate-400 italic">Đang tải các thẻ tag từ Google Sheets...</span>
+            </div>
+        </section>
+
+        <!-- Lưới sản phẩm Camera -->
+        <section id="cameraGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+            <!-- Danh sách camera được render qua renderCameraList() -->
+            <div class="col-span-full py-20 text-center space-y-4">
+                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-brand-600"></i>
+                <p class="text-sm font-semibold text-slate-600">Đang tải dữ liệu camera từ Google Sheets...</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-6 mt-12 no-print">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500 space-y-2">
+            <p class="font-bold text-slate-800">TIN HỌC CƯỜNG TÍN - GIẢI PHÁP CAMERA AN NINH CHUYÊN NGHIỆP</p>
+            <p><i class="fa-solid fa-location-dot text-red-500 mr-1"></i> Thôn Tân Bình, xã Đắk Song, tỉnh Lâm Đồng | <i class="fa-solid fa-phone text-emerald-600 ml-2 mr-1"></i> Hotline: 0931.113.048</p>
+            <p class="text-[11px] text-slate-400">© 2026 Tin học Cường Tín. Bảng giá & gói dịch vụ cập nhật trực tiếp từ hệ thống Google Sheets.</p>
+        </div>
+    </footer>
+
+    <!-- MODAL: Cấu hình Google Apps Script (GAS) API -->
+    <div id="gasConfigModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-950/70 backdrop-blur-sm p-4 flex items-center justify-center">
+        <div class="relative bg-white w-full max-w-xl rounded-2xl shadow-2xl p-6 border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h4 class="font-bold text-base text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                    Cấu hình API Google Sheet (GAS)
+                </h4>
+                <button onclick="closeGasConfigModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed">
+                Nhập đường dẫn Web App Google Apps Script của bạn (URL có đuôi <code class="bg-slate-100 px-1 py-0.5 rounded text-red-600">/exec</code>). Khi bạn sửa giá trong Sheet, webapp sẽ tự động cập nhật ngay lập tức.
+            </p>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Google Apps Script Web App URL</label>
+                <input 
+                    type="url" 
+                    id="gasUrlInput" 
+                    placeholder="https://script.google.com/macros/s/.../exec"
+                    class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                >
+            </div>
+
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-1.5">
+                <p class="font-bold text-slate-800 flex items-center gap-1.5">
+                    <i class="fa-solid fa-lightbulb text-amber-500"></i> Hướng dẫn tạo API Apps Script cực nhanh:
+                </p>
+                <ol class="list-decimal pl-4 space-y-1 text-[11px] text-slate-500">
+                    <li>Trong Google Sheets chứa bảng giá của bạn, vào <b>Tiện ích mở rộng (Extensions) &gt; Apps Script</b>.</li>
+                    <li>Dán đoạn mã <code>doGet(e)</code> được cung cấp trong hướng dẫn.</li>
+                    <li>Bấm <b>Deploy (Triển khai) &gt; New deployment &gt; Chọn Web app</b>.</li>
+                    <li>Mục <i>Who has access (Ai có quyền truy cập)</i> chọn <b>Anyone (Bất kỳ ai)</b> rồi copy URL dán vào đây.</li>
+                </ol>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+                <button onclick="closeGasConfigModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Đóng</button>
+                <button onclick="saveGasUrlAndFetch()" class="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow transition">
+                    Lưu & Đồng bộ dữ liệu
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Chọn Gói Dịch Vụ Cho Camera -->
+    <div id="packageSelectModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-950/70 backdrop-blur-sm p-0 sm:p-4 md:p-6 flex items-center justify-center">
+        <div class="relative bg-white w-full h-full sm:h-auto sm:max-h-[92vh] sm:max-w-4xl md:max-w-5xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
+            <!-- Modal Header -->
+            <div class="p-4 sm:p-5 bg-gradient-to-r from-slate-900 to-slate-800 text-white flex items-start justify-between flex-shrink-0">
+                <div>
+                    <span id="modalCategoryBadge" class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/30">Camera Ngoài Trời</span>
+                    <h4 id="modalCameraName" class="text-base sm:text-xl font-extrabold mt-1">Camera Wifi Imou 5MP IPC-K2MP-5H1WE</h4>
+                    <p class="text-xs text-slate-300 mt-0.5">Chọn 1 trong 4 phương án báo giá phù hợp nhất:</p>
+                </div>
+                <button onclick="closePackageModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition flex-shrink-0">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body: 2 cột trên Desktop (ảnh + thông số bên dưới ở cột trái, gói báo giá ở cột phải), 1 cột trên Mobile -->
+            <div class="p-4 sm:p-6 overflow-y-auto flex-1 custom-scrollbar">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                    
+                    <!-- Cột bên trái: Ảnh Camera Full Khung Rộng + Thông số kỹ thuật nằm ngay dưới ảnh -->
+                    <div class="md:col-span-5 flex flex-col items-center bg-slate-50 p-3 sm:p-4 rounded-2xl border border-slate-200">
+                        <div class="w-full aspect-video sm:aspect-square bg-slate-100/60 rounded-xl border border-slate-200 overflow-hidden relative shadow-inner">
+                            <img id="modalCameraImg" src="" alt="Camera preview" class="w-full h-full object-cover">
+                        </div>
+                        
+                        <!-- Thông tin kỹ thuật chuyển xuống dưới ảnh -->
+                        <div class="w-full mt-4 p-3.5 bg-white rounded-xl border border-slate-200 shadow-sm text-left">
+                            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
+                                <i class="fa-solid fa-circle-info text-brand-500"></i>
+                                Thông số & Tính năng
+                            </div>
+                            <div id="modalCameraSpecs" class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
+                                <!-- Populated via JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cột bên phải: 4 phương án báo giá -->
+                    <div class="md:col-span-7 flex flex-col justify-start">
+                        <div class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5 flex items-center gap-2">
+                            <span class="w-2 h-4 bg-brand-600 rounded"></span>
+                            Phương án báo giá:
+                        </div>
+                        <div class="space-y-3" id="packageRadioContainer">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 sm:p-5 bg-slate-50 border-t border-slate-200 flex flex-col-reverse sm:flex-row items-center justify-between gap-3 flex-shrink-0">
+                <button onclick="closePackageModal()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-xs sm:text-sm font-semibold hover:bg-slate-100 transition">
+                    Đóng lại
+                </button>
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <button onclick="confirmAddToOrder()" class="w-full sm:w-auto flex-1 sm:flex-none px-6 py-2.5 bg-gradient-to-r from-brand-600 to-red-600 hover:from-brand-700 hover:to-red-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-lg shadow-brand-500/25 transition flex items-center justify-center gap-2 active:scale-95">
+                        <i class="fa-solid fa-check"></i>
+                        <span>Thêm vào đơn hàng</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Xem Catalogue In Ấn (A4 Catalogue Preview / Print) -->
+    <div id="cataloguePreviewModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-950/80 backdrop-blur-sm p-2 sm:p-6 flex items-center justify-center">
+        <div class="relative bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden border border-slate-300 flex flex-col max-h-[95vh]">
+            <!-- Action Toolbar (No Print) -->
+            <div class="p-4 bg-slate-900 text-white flex items-center justify-between no-print border-b border-slate-700">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-file-invoice text-red-500"></i>
+                    <span class="font-bold text-sm">Xem trước trang in Catalogue A4</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="window.print()" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow transition">
+                        <i class="fa-solid fa-print"></i> In trang này (PDF)
+                    </button>
+                    <button onclick="closeCatalogueModal()" class="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Catalogue Printable Container (Styled like telecom flyer) -->
+            <div class="p-6 sm:p-10 overflow-y-auto custom-scrollbar flex-1 bg-white" id="printableCatalogueContent">
+                <!-- Dynamically generated flyer -->
+            </div>
+        </div>
+    </div>
+
+    <!-- DRAWER: Giỏ Hàng & Báo Giá Tổng -->
+    <div id="cartDrawer" class="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-2xl border-l border-slate-200 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col no-print">
+        <div class="p-5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-cart-shopping text-red-500 text-lg"></i>
+                <h4 class="font-bold text-base">Bảng dự toán đơn hàng</h4>
+            </div>
+            <button onclick="toggleCartDrawer()" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Items list -->
+        <div id="cartItemList" class="flex-1 overflow-y-auto p-5 space-y-3.5 custom-scrollbar">
+            <!-- Populated via Javascript -->
+        </div>
+
+        <!-- Summary & Checkout Footer -->
+        <div class="p-5 bg-slate-50 border-t border-slate-200 space-y-4">
+            <div class="flex justify-between items-center text-sm">
+                <span class="text-slate-500 font-medium">Số lượng camera đã chọn:</span>
+                <span id="cartTotalItems" class="font-bold text-slate-800">0 chiếc</span>
+            </div>
+            <div class="flex justify-between items-baseline">
+                <span class="text-base font-bold text-slate-900">Tổng thanh toán dự kiến:</span>
+                <span id="cartTotalPrice" class="text-2xl font-black text-brand-600">0 đ</span>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="clearCart()" class="w-full py-2.5 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-200 transition">
+                    Xóa tất cả
+                </button>
+                <button onclick="copyQuoteSummary()" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+                    <i class="fa-regular fa-copy"></i> Copy báo giá
+                </button>
+            </div>
+            <button onclick="openBookingConfirmationModal()" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition active:scale-95">
+                <i class="fa-solid fa-paper-plane"></i> Gửi yêu cầu khảo sát & lắp đặt
+            </button>
+        </div>
+    </div>
+
+    <!-- Notification Toast Element -->
+    <div id="toastNotification" class="fixed bottom-6 right-6 z-50 hidden px-5 py-3.5 rounded-2xl bg-slate-900/90 text-white text-sm font-semibold shadow-2xl backdrop-blur-md border border-slate-700 items-center gap-3 animate-in slide-in-from-bottom duration-200">
+        <i class="fa-solid fa-circle-check text-emerald-400 text-base" id="toastIcon"></i>
+        <span id="toastMessage">Thông báo thao tác thành công!</span>
+    </div>
+
+    <!-- Script Application Logic -->
+    <script>
+        // DATA NGUỒN TỪ BẢNG BÁO GIÁ CỦA BẠN
+        // Tạo SVG vector an toàn làm hình ảnh minh họa khi trên Sheet không có ảnh
+        function createCameraSVG(type, code, color) {
+            let innerShape = '';
+            if (type === 'dome') {
+                innerShape = `
+                    <circle cx='200' cy='210' r='105' fill='#f1f5f9' stroke='#cbd5e1' stroke-width='4'/>
+                    <circle cx='200' cy='180' r='80' fill='#0f172a'/>
+                    <circle cx='200' cy='170' r='42' fill='#1e293b' stroke='#38bdf8' stroke-width='4'/>
+                    <circle cx='200' cy='170' r='20' fill='#0284c7'/>
+                    <circle cx='192' cy='162' r='6' fill='#ffffff' opacity='0.7'/>
+                    <circle cx='200' cy='225' r='7' fill='#f59e0b'/>
+                    <rect x='160' y='275' width='80' height='26' rx='6' fill='#e2e8f0'/>
+                    <text x='200' y='293' font-family='Arial,sans-serif' font-size='12' font-weight='bold' fill='#475569' text-anchor='middle'>${code}</text>
+                `;
+            } else if (type === 'bullet') {
+                innerShape = `
+                    <rect x='80' y='140' width='80' height='20' rx='6' fill='#94a3b8' transform='rotate(30 80 140)'/>
+                    <path d='M130 190 L260 145 C285 138 300 160 295 190 L270 240 C250 270 215 265 190 255 Z' fill='#e2e8f0' stroke='#64748b' stroke-width='4'/>
+                    <circle cx='165' cy='205' r='52' fill='#0f172a'/>
+                    <circle cx='165' cy='205' r='26' fill='#1e293b' stroke='#38bdf8' stroke-width='4'/>
+                    <circle cx='165' cy='205' r='13' fill='#0284c7'/>
+                    <circle cx='158' cy='198' r='5' fill='#ffffff' opacity='0.7'/>
+                    <rect x='230' y='90' width='10' height='75' rx='5' fill='#94a3b8' transform='rotate(-20 230 90)'/>
+                    <rect x='255' y='110' width='10' height='75' rx='5' fill='#94a3b8' transform='rotate(15 255 110)'/>
+                    <text x='200' y='325' font-family='Arial,sans-serif' font-size='13' font-weight='bold' fill='#334155' text-anchor='middle'>${code}</text>
+                `;
+            } else if (type === 'dual') {
+                innerShape = `
+                    <rect x='140' y='110' width='120' height='70' rx='14' fill='#0f172a' stroke='#cbd5e1' stroke-width='3'/>
+                    <circle cx='200' cy='145' r='20' fill='#0284c7' stroke='#ffffff' stroke-width='3'/>
+                    <circle cx='195' cy='140' r='6' fill='#ffffff' opacity='0.7'/>
+                    <circle cx='200' cy='245' r='65' fill='#0f172a' stroke='#e2e8f0' stroke-width='4'/>
+                    <circle cx='200' cy='240' r='26' fill='#e11d48' stroke='#ffffff' stroke-width='3'/>
+                    <circle cx='180' cy='275' r='6' fill='#f59e0b'/>
+                    <circle cx='220' cy='275' r='6' fill='#f59e0b'/>
+                    <rect x='95' y='140' width='12' height='90' rx='6' fill='#cbd5e1'/>
+                    <rect x='293' y='140' width='12' height='90' rx='6' fill='#cbd5e1'/>
+                    <text x='200' y='345' font-family='Arial,sans-serif' font-size='13' font-weight='bold' fill='#b91c1c' text-anchor='middle'>${code}</text>
+                `;
+            } else if (type === 'solar') {
+                innerShape = `
+                    <rect x='205' y='75' width='130' height='155' rx='8' fill='#1e293b' stroke='#64748b' stroke-width='3'/>
+                    <path d='M215 115 L325 115 M215 155 L325 155 M215 195 L325 195 M270 75 L270 230' stroke='#475569' stroke-width='2'/>
+                    <circle cx='140' cy='215' r='58' fill='#0f172a' stroke='#cbd5e1' stroke-width='3'/>
+                    <circle cx='140' cy='210' r='26' fill='#0284c7' stroke='#ffffff' stroke-width='3'/>
+                    <circle cx='134' cy='204' r='6' fill='#ffffff' opacity='0.7'/>
+                    <rect x='115' y='130' width='45' height='30' rx='6' fill='#cbd5e1'/>
+                    <text x='200' y='340' font-family='Arial,sans-serif' font-size='13' font-weight='bold' fill='#d97706' text-anchor='middle'>${code}</text>
+                `;
+            } else {
+                innerShape = `
+                    <rect x='150' y='75' width='100' height='35' rx='8' fill='#94a3b8'/>
+                    <rect x='185' y='110' width='30' height='30' fill='#64748b'/>
+                    <circle cx='200' cy='215' r='82' fill='#f8fafc' stroke='#64748b' stroke-width='4'/>
+                    <circle cx='200' cy='205' r='56' fill='#0f172a'/>
+                    <circle cx='200' cy='200' r='28' fill='#1e293b' stroke='${color || '#3b82f6'}' stroke-width='4'/>
+                    <circle cx='200' cy='200' r='14' fill='${color || '#3b82f6'}'/>
+                    <circle cx='175' cy='200' r='7' fill='#fbbf24'/>
+                    <circle cx='225' cy='200' r='7' fill='#fbbf24'/>
+                    <rect x='105' y='145' width='12' height='90' rx='6' fill='#cbd5e1'/>
+                    <rect x='283' y='145' width='12' height='90' rx='6' fill='#cbd5e1'/>
+                    <text x='200' y='330' font-family='Arial,sans-serif' font-size='13' font-weight='bold' fill='#0f172a' text-anchor='middle'>${code}</text>
+                `;
+            }
+
+            const rawSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" fill="none"><rect width="400" height="400" rx="30" fill="#ffffff"/><circle cx="200" cy="200" r="170" fill="#f1f5f9"/>${innerShape}</svg>`;
+            return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(rawSvg)));
+        }
+
+        // Khởi tạo mảng rỗng - hoàn toàn nạp từ Google Sheets
+        let CAMERA_DATABASE = [];
+
+        // Trạng thái đơn hàng trong Session
+        let cart = [];
+        // Tập hợp các tag đang được TÍCH CHỌN (Điều kiện VÀ - AND Logic)
+        let selectedTags = new Set();
+        let currentSelectedCameraId = null;
+        let selectedPackageKey = 'setup_sd'; // Mặc định gói thẻ nhớ + cài đặt
+
+        // GOOGLE APPS SCRIPT API CONFIGURATION
+        let gasApiUrl = 'https://script.google.com/macros/s/AKfycbwDh2w5JnuY-FcJpOG8_pIXEmPKQ7irKcJHJ8pbZIsmJ1Edzjf8TZOhNJlH_Pl1fAMrbw/exec';
+
+        function initGasConfig() {
+            if (typeof window !== 'undefined' && window.__gas_url) {
+                gasApiUrl = window.__gas_url;
+            }
+            if (gasApiUrl) {
+                const urlInput = document.getElementById('gasUrlInput');
+                if (urlInput) urlInput.value = gasApiUrl;
+                fetchDataFromGas(gasApiUrl);
+            }
+        }
+
+        function openGasConfigModal() {
+            document.getElementById('gasUrlInput').value = gasApiUrl || '';
+            document.getElementById('gasConfigModal').classList.remove('hidden');
+        }
+
+        function closeGasConfigModal() {
+            document.getElementById('gasConfigModal').classList.add('hidden');
+        }
+
+        function saveGasUrlAndFetch() {
+            const inputVal = document.getElementById('gasUrlInput').value.trim();
+            gasApiUrl = inputVal;
+            window.__gas_url = inputVal;
+            closeGasConfigModal();
+
+            if (!gasApiUrl) {
+                document.getElementById('gasStatusAlert').classList.add('hidden');
+                showToast('Vui lòng nhập URL Google Apps Script để tải dữ liệu.');
+                return;
+            }
+
+            fetchDataFromGas(gasApiUrl);
+        }
+
+        function refreshDataFromGas() {
+            if (!gasApiUrl) {
+                openGasConfigModal();
+                showToast('Vui lòng cấu hình URL Google Apps Script API trước.');
+                return;
+            }
+            fetchDataFromGas(gasApiUrl);
+        }
+
+        // Tải dữ liệu từ Google Apps Script Web App (Hỗ trợ JSONP, Fetch & CORS Proxy chống chặn CORS)
+        async function fetchDataFromGas(url) {
+            const syncIcon = document.getElementById('syncIcon');
+            if (syncIcon) syncIcon.classList.add('fa-spin');
+
+            const handleSuccessData = (sheetRows) => {
+                if (Array.isArray(sheetRows) && sheetRows.length > 0) {
+                    buildCamerasFromSheetData(sheetRows);
+                    
+                    const statusAlert = document.getElementById('gasStatusAlert');
+                    const statusText = document.getElementById('gasStatusText');
+                    if (statusText) {
+                        statusText.innerText = `Đã đồng bộ giá trực tiếp từ Google Sheets (${CAMERA_DATABASE.length} sản phẩm) lúc ${new Date().toLocaleTimeString('vi-VN')}`;
+                    }
+                    if (statusAlert) statusAlert.classList.remove('hidden');
+                    
+                    renderCameraList();
+                    showToast(`Đã nạp ${CAMERA_DATABASE.length} camera từ Google Sheets!`);
+                    return true;
+                } else if (typeof sheetRows === 'object' && sheetRows !== null) {
+                    const list = sheetRows.data || sheetRows.rows || sheetRows.items;
+                    if (Array.isArray(list) && list.length > 0) {
+                        buildCamerasFromSheetData(list);
+                        renderCameraList();
+                        showToast(`Đã nạp ${CAMERA_DATABASE.length} camera từ Google Sheets!`);
+                        return true;
+                    }
+                }
+                return false;
+            };
+
+            // Phương thức 1: Sử dụng JSONP (Khắc phục triệt để CORS trong sandbox iframe)
+            const tryFetchJSONP = () => {
+                return new Promise((resolve, reject) => {
+                    const callbackName = 'gasCallback_' + Math.round(100000 * Math.random());
+                    const timeoutTimer = setTimeout(() => {
+                        cleanup();
+                        reject(new Error('JSONP Timeout'));
+                    }, 6000);
+
+                    const cleanup = () => {
+                        delete window[callbackName];
+                        if (scriptEl && scriptEl.parentNode) {
+                            scriptEl.parentNode.removeChild(scriptEl);
+                        }
+                        clearTimeout(timeoutTimer);
+                    };
+
+                    window[callbackName] = (data) => {
+                        cleanup();
+                        resolve(data);
+                    };
+
+                    const scriptEl = document.createElement('script');
+                    const sep = url.includes('?') ? '&' : '?';
+                    scriptEl.src = `${url}${sep}callback=${callbackName}&prefix=${callbackName}`;
+                    scriptEl.onerror = () => {
+                        cleanup();
+                        reject(new Error('JSONP Script Load Error'));
+                    };
+
+                    document.body.appendChild(scriptEl);
+                });
+            };
+
+            try {
+                // Thử 1: JSONP
+                const jsonpData = await tryFetchJSONP();
+                if (handleSuccessData(jsonpData)) {
+                    if (syncIcon) syncIcon.classList.remove('fa-spin');
+                    return;
+                }
+            } catch (errJsonp) {
+                // Thử 2: Fetch trực tiếp
+                try {
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: { 'Accept': 'application/json' },
+                        redirect: 'follow'
+                    });
+                    if (response.ok) {
+                        const directData = await response.json();
+                        if (handleSuccessData(directData)) {
+                            if (syncIcon) syncIcon.classList.remove('fa-spin');
+                            return;
+                        }
+                    }
+                } catch (errDirect) {
+                    // Thử 3: CORS Proxy
+                    try {
+                        const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
+                        const proxyResponse = await fetch(proxyUrl);
+                        if (proxyResponse.ok) {
+                            const proxyData = await proxyResponse.json();
+                            if (handleSuccessData(proxyData)) {
+                                if (syncIcon) syncIcon.classList.remove('fa-spin');
+                                return;
+                            }
+                        }
+                    } catch (errProxy) {
+                        console.warn('Lỗi kết nối API Google Sheets:', errProxy);
+                        showToast('Không thể tải dữ liệu từ Google Sheets. Vui lòng kiểm tra lại quyền Web App.');
+                    }
+                }
+            } finally {
+                if (syncIcon) syncIcon.classList.remove('fa-spin');
+            }
+        }
+
+        // TẠO HOÀN TOÀN DANH SÁCH CAMERA TỪ CÁC DÒNG CỦA GOOGLE SHEET (KHÔNG DÙNG DỮ LIỆU MẪU)
+        function buildCamerasFromSheetData(rows) {
+            const parsePrice = (val) => {
+                if (val === null || val === undefined || val === '') return 0;
+                const clean = String(val).replace(/[^0-9]/g, '');
+                if (!clean) return 0;
+                const num = Number(clean);
+                if (isNaN(num) || num <= 0) return 0;
+                return num < 10000 ? num * 1000 : num;
+            };
+
+            const newList = [];
+
+            rows.forEach((row, index) => {
+                let name = '';
+                let cloudVal, setupVal, bh1Val, bh2Val, imgVal, resVal, featVal, tagVal;
+
+                if (Array.isArray(row)) {
+                    // Cột B (index 1) là tên hàng nếu có STT ở cột A
+                    if (row.length >= 2 && (typeof row[0] === 'number' || (row[0] && !isNaN(row[0])))) {
+                        name = row[1];
+                        cloudVal = row[2];
+                        setupVal = row[3];
+                        bh1Val = row[4];
+                        bh2Val = row[5];
+                        imgVal = row[6];
+                        resVal = row[7];
+                        featVal = row[8];
+                        tagVal = row[9] || row[10] || ''; // Cột J: Thẻ tag / Phân loại
+                    } else {
+                        name = row[0];
+                        cloudVal = row[1];
+                        setupVal = row[2];
+                        bh1Val = row[3];
+                        bh2Val = row[4];
+                        imgVal = row[5];
+                        resVal = row[6];
+                        featVal = row[7];
+                        tagVal = row[8] || row[9] || '';
+                    }
+                } else if (typeof row === 'object' && row !== null) {
+                    name = row.tenHang || row['Tên hàng'] || row['tên hàng'] || row['Ten hang'] || row['ten_hang'] || row.name || '';
+                    cloudVal = row.cloud || row['Cloud'] || row['Gói camera dùng cloud'] || row.goi_cloud;
+                    setupVal = row.setup || row['Cài đặt + 64Gb'] || row['Gói hỗ trợ cài đặt + Thẻ 64Gb'] || row.goi_setup;
+                    bh1Val = row.bh1 || row['BH 1 năm'] || row.bh_1_nam;
+                    bh2Val = row.bh2 || row['BH 2 năm 64Gb'] || row['Gói bảo hành 2 năm thẻ nhớ 64Gb'] || row.bh_2_nam;
+                    imgVal = row.hinhAnh || row['Hình ảnh'] || row['hình ảnh'] || row.image || row.img;
+                    resVal = row.doPhanGiai || row['Độ phân giải'] || row['độ phân giải'] || row.resolution;
+                    
+                    // Quét toàn bộ các biến thể tên cột cho Tính năng
+                    featVal = row.tinhNang || row['Tính năng'] || row['tính năng'] || row['Tinh nang'] || row['tinh_nang'] || row.features || row.feature || row.dacDiem || row['Đặc điểm'];
+                    
+                    // Quét cột Thẻ Tag / Phân loại (Cột J)
+                    tagVal = row.theTag || row.tag || row['Thẻ tag'] || row['thẻ tag'] || row['The tag'] || row['the_tag'] || row['Tag'] || row['Phân loại'] || row['phanLoai'] || row['Loại camera'];
+
+                    if (!featVal) {
+                        for (const k of Object.keys(row)) {
+                            const lk = k.toLowerCase();
+                            if (lk.includes('năng') || lk.includes('nang') || lk.includes('feat') || lk.includes('tính') || lk.includes('tinh')) {
+                                featVal = row[k];
+                                break;
+                            }
+                        }
+                    }
+                    if (!tagVal) {
+                        for (const k of Object.keys(row)) {
+                            const lk = k.toLowerCase();
+                            if (lk.includes('tag') || lk.includes('loại') || lk.includes('loai') || lk.includes('nhóm')) {
+                                tagVal = row[k];
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (!name || String(name).trim() === '' || String(name).toLowerCase() === 'tên hàng') return;
+
+                const nameStr = String(name).trim();
+                const lowerName = nameStr.toLowerCase();
+
+                // Xác định Thẻ Tag & Category từ cột J trên Sheet (tách nhiều tag bằng dấu phẩy, gạch chéo hoặc chấm phẩy)
+                let customTagsList = [];
+                if (tagVal !== undefined && tagVal !== null) {
+                    const cleanTag = String(tagVal).trim();
+                    if (cleanTag !== '' && !cleanTag.includes('để trống') && !cleanTag.includes('hoặc')) {
+                        customTagsList = cleanTag
+                            .split(/[,;\/|]+/)
+                            .map(t => t.trim())
+                            .filter(t => t.length > 0);
+                    }
+                }
+
+                let category = 'ngoaitroi';
+                let categoryLabel = customTagsList.length > 0 ? customTagsList[0] : 'Ngoài trời';
+                let svgType = 'ptz';
+                let svgColor = '#ef4444';
+
+                const checkStr = (customTagsList.join(' ') + ' ' + lowerName).toLowerCase();
+
+                if (checkStr.includes('trong nhà') || checkStr.includes('indoor') || checkStr.includes('k2mp') || checkStr.includes('a22') || checkStr.includes('a42')) {
+                    category = 'trongnha';
+                    if (customTagsList.length === 0) customTagsList.push('Trong nhà');
+                    svgType = 'dome';
+                    svgColor = '#0284c7';
+                } else if (checkStr.includes('2 mắt') || checkStr.includes('dual') || checkStr.includes('s7xep')) {
+                    category = '2mat';
+                    if (customTagsList.length === 0) customTagsList.push('2 Mắt Kép');
+                    svgType = 'dual';
+                    svgColor = '#e11d48';
+                } else if (checkStr.includes('solar') || checkStr.includes('mặt trời') || checkStr.includes('pin') || checkStr.includes('b7ed')) {
+                    category = 'solar';
+                    if (customTagsList.length === 0) customTagsList.push('Năng lượng mặt trời');
+                    svgType = 'solar';
+                    svgColor = '#d97706';
+                } else if (checkStr.includes('thân') || checkStr.includes('bullet') || (checkStr.includes('f32p') && !checkStr.includes('pt'))) {
+                    category = 'ngoaitroi';
+                    if (customTagsList.length === 0) customTagsList.push('Ngoài trời thân');
+                    svgType = 'bullet';
+                    svgColor = '#0284c7';
+                } else {
+                    category = 'ngoaitroi';
+                    if (customTagsList.length === 0) customTagsList.push('Ngoài trời xoay 360');
+                }
+
+                // Tự động bổ sung tag 4G nếu tên hoặc thông số có chữ 4G
+                if (checkStr.includes('4g') && !customTagsList.some(t => t.toLowerCase() === '4g')) {
+                    customTagsList.push('4G');
+                }
+
+                categoryLabel = customTagsList[0] || 'Camera An Ninh';
+
+                // Xử lý thông số độ phân giải
+                let resolution = 'Full HD Sắc Nét';
+                if (resVal && String(resVal).trim() !== '' && !String(resVal).includes('hoặc để trống')) {
+                    resolution = String(resVal).trim();
+                } else {
+                    if (lowerName.includes('5mp') || lowerName.includes('5m') || lowerName.includes('b7ed')) resolution = '5.0 Megapixel (3K Super HD)';
+                    else if (lowerName.includes('3mp') || lowerName.includes('3m') || lowerName.includes('f32') || lowerName.includes('s31')) resolution = '3.0 Megapixel (2K QHD)';
+                    else if (lowerName.includes('s7xep')) resolution = 'Dual-Lens 2 Mắt 10MP';
+                }
+
+                // Nhận tính năng từ Sheet
+                let features = [];
+                if (featVal !== undefined && featVal !== null) {
+                    const rawFeatStr = String(featVal).trim();
+                    if (rawFeatStr !== '' && !rawFeatStr.includes('để trống') && !rawFeatStr.includes('hoặc')) {
+                        features = rawFeatStr
+                            .split(/[\r\n,;•|]+/)
+                            .map(f => f.trim().replace(/^[-*+•\d\.\)]\s*/, ''))
+                            .filter(f => f.length > 1);
+                    }
+                }
+                
+                if (features.length === 0) {
+                    if (lowerName.includes('k2mp')) {
+                        features = ['Xoay quét 360 độ tự động', 'Đàm thoại âm thanh 2 chiều', 'Phát hiện & bám người AI', 'Hồng ngoại ban đêm 10m'];
+                    } else if (lowerName.includes('f32pt') || lowerName.includes('s31')) {
+                        features = ['Quay quét 360 độ ngoài trời', 'Ban đêm có màu Full Color', 'Đàm thoại 2 chiều to rõ', 'Chuẩn chống nước & bụi IP66'];
+                    } else if (lowerName.includes('f32p')) {
+                        features = ['Thân trụ chống chịu mưa nắng IP67', 'Ban đêm hồng ngoại 30m siêu rõ', 'Phát hiện chuyển động thông minh', 'Mic ghi âm khử ồn chất lượng cao'];
+                    } else if (lowerName.includes('s7xep')) {
+                        features = ['2 Mắt quan sát 2 góc đồng thời', 'Độ phân giải kép 10MP siêu nét', 'Báo động còi hú & đèn chớp kép', 'Xoay 360 độ góc dưới linh hoạt'];
+                    } else if (lowerName.includes('b7ed')) {
+                        features = ['Tấm pin năng lượng mặt trời đi kèm', 'Pin sạc dự phòng dùng liên tục', 'Không cần kéo dây nguồn rườm rà', 'Kết nối Wifi 4G ổn định ngoài trời'];
+                    } else {
+                        features = ['Quan sát sắc nét 24/7', 'Đàm thoại âm thanh 2 chiều', 'Cảnh báo chuyển động thông minh', 'Hỗ trợ lưu trữ thẻ nhớ & Cloud'];
+                    }
+                }
+
+                const fallbackSvg = createCameraSVG(svgType, nameStr.substring(0, 16), svgColor);
+                let imageUrl = fallbackSvg;
+                if (imgVal && typeof imgVal === 'string' && imgVal.startsWith('http') && !imgVal.includes('Link ảnh')) {
+                    let cleanUrl = imgVal.trim();
+                    if (cleanUrl.includes('drive.google.com/file/d/')) {
+                        const fileIdMatch = cleanUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+                        if (fileIdMatch && fileIdMatch[1]) {
+                            cleanUrl = 'https://drive.google.com/uc?export=view&id=' + fileIdMatch[1];
+                        }
+                    } else if (cleanUrl.includes('drive.google.com/open?id=')) {
+                        const fileIdMatch = cleanUrl.match(/id=([a-zA-Z0-9_-]+)/);
+                        if (fileIdMatch && fileIdMatch[1]) {
+                            cleanUrl = 'https://drive.google.com/uc?export=view&id=' + fileIdMatch[1];
+                        }
+                    }
+                    imageUrl = cleanUrl;
+                }
+
+                const priceCloud = parsePrice(cloudVal);
+                const priceSetup = parsePrice(setupVal);
+                const priceBh1 = parsePrice(bh1Val);
+                const priceBh2 = parsePrice(bh2Val);
+
+                newList.push({
+                    id: 'cam_' + (index + 1) + '_' + Math.random().toString(36).substring(2, 7),
+                    name: nameStr,
+                    shortCode: nameStr.split(' ')[0] + ' ' + (nameStr.split(' ')[1] || ''),
+                    badge: index === 0 ? 'Bán chạy nhất' : (index === 1 ? 'Chính hãng' : 'Cao cấp'),
+                    resolution: resolution,
+                    category: category,
+                    categoryLabel: categoryLabel,
+                    tags: customTagsList, // Mảng chứa toàn bộ các tag của camera này
+                    tagLabel: customTagsList.join(', '),
+                    imageUrl: imageUrl,
+                    fallbackSvg: fallbackSvg,
+                    features: features,
+                    packages: {
+                        cloud: {
+                            name: 'Gói camera dùng cloud',
+                            price: priceCloud || 490000,
+                            desc: 'Lưu trữ server đám mây, tự động sao lưu an toàn'
+                        },
+                        setup_sd: {
+                            name: 'Gói hỗ trợ cài đặt + Thẻ 64Gb',
+                            price: priceSetup || 880000,
+                            desc: 'Thi công treo trụ/tường + Cài đặt app + Thẻ 64GB'
+                        },
+                        bh_1y: {
+                            name: 'BH 1 năm',
+                            price: priceBh1 || 1220000,
+                            desc: 'Bảo hành phần cứng 12 tháng, đổi mới linh hoạt'
+                        },
+                        bh_2y_sd: {
+                            name: 'Gói BH 2 năm thẻ nhớ 64Gb',
+                            price: priceBh2 || 1300000,
+                            desc: 'Bảo hành dài hạn 24 tháng kèm thẻ nhớ 64GB chính hãng'
+                        }
+                    }
+                });
+            });
+
+            CAMERA_DATABASE = newList;
+            buildDynamicFilterTabs();
+        }
+
+        // Tự động sinh các nút TÍCH KIỂM (Checkbox) theo các thẻ Tag thực tế có trong Google Sheets
+        function buildDynamicFilterTabs() {
+            const filterContainer = document.getElementById('categoryFilters');
+            if (!filterContainer) return;
+
+            // Thu thập các tag duy nhất xuất hiện trong danh sách camera
+            const tagSet = new Set();
+            CAMERA_DATABASE.forEach(cam => {
+                if (Array.isArray(cam.tags)) {
+                    cam.tags.forEach(t => {
+                        const trimmed = String(t).trim();
+                        if (trimmed) tagSet.add(trimmed);
+                    });
+                }
+            });
+
+            const clearBtn = document.getElementById('clearFiltersBtn');
+            const activeBadge = document.getElementById('activeFilterBadge');
+            const activeCountEl = document.getElementById('activeTagCount');
+
+            if (selectedTags.size > 0) {
+                if (clearBtn) clearBtn.classList.remove('hidden'), clearBtn.classList.add('flex');
+                if (activeBadge) activeBadge.classList.remove('hidden');
+                if (activeCountEl) activeCountEl.innerText = selectedTags.size;
+            } else {
+                if (clearBtn) clearBtn.classList.add('hidden'), clearBtn.classList.remove('flex');
+                if (activeBadge) activeBadge.classList.add('hidden');
+            }
+
+            if (tagSet.size === 0) {
+                filterContainer.innerHTML = '<span class="text-xs text-slate-400">Chưa có thẻ tag nào được khai báo ở cột J trên Google Sheets.</span>';
+                return;
+            }
+
+            let html = '';
+            tagSet.forEach(tag => {
+                const isChecked = selectedTags.has(tag);
+                // Đếm số lượng camera có chứa tag này
+                const matchCount = CAMERA_DATABASE.filter(c => Array.isArray(c.tags) && c.tags.some(t => t.toLowerCase() === tag.toLowerCase())).length;
+
+                html += `
+                    <label onclick="handleTagCheckboxToggle(event, '${tag.replace(/'/g, "\\'")}')" class="cursor-pointer select-none flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-all duration-200 ${isChecked ? 'bg-red-50/90 border-brand-500 text-brand-700 shadow-sm ring-1 ring-brand-500' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'}">
+                        <input 
+                            type="checkbox" 
+                            value="${tag}" 
+                            ${isChecked ? 'checked' : ''} 
+                            class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500 accent-red-600 cursor-pointer pointer-events-none"
+                        >
+                        <span>${tag}</span>
+                        <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ${isChecked ? 'bg-brand-600 text-white' : 'bg-slate-200 text-slate-600'}">${matchCount}</span>
+                    </label>
+                `;
+            });
+
+            filterContainer.innerHTML = html;
+        }
+
+        // Bật/tắt nút tích kiểm (Checkbox) theo điều kiện VÀ
+        function handleTagCheckboxToggle(e, tag) {
+            e.preventDefault(); // Ngăn double trigger giữa label và input
+            if (selectedTags.has(tag)) {
+                selectedTags.delete(tag);
+            } else {
+                selectedTags.add(tag);
+            }
+            buildDynamicFilterTabs();
+            renderCameraList();
+        }
+
+        // Bỏ chọn tất cả các điều kiện tích kiểm
+        function clearAllTagFilters() {
+            selectedTags.clear();
+            buildDynamicFilterTabs();
+            renderCameraList();
+        }
+
+        // Định dạng tiền tệ VND
+        function formatVND(amount) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount).replace('₫', 'đ');
+        }
+
+        // Render danh sách Camera (Lọc theo ĐIỀU KIỆN VÀ - AND LOGIC: Thỏa mãn toàn bộ các tag đã tích)
+        function renderCameraList() {
+            const grid = document.getElementById('cameraGrid');
+            if (!grid) return;
+
+            const searchInput = document.getElementById('searchInput');
+            const searchVal = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+            const filtered = CAMERA_DATABASE.filter(cam => {
+                // 1. Kiểm tra điều kiện tìm kiếm từ khóa
+                const matchSearch = !searchVal || 
+                                    cam.name.toLowerCase().includes(searchVal) || 
+                                    cam.shortCode.toLowerCase().includes(searchVal) ||
+                                    (Array.isArray(cam.tags) && cam.tags.some(t => t.toLowerCase().includes(searchVal)));
+
+                // 2. Kiểm tra điều kiện TẤT CẢ các nút tích (AND LOGIC)
+                // Nếu selectedTags rỗng -> camera nào cũng hợp lệ
+                // Nếu selectedTags có ['Trong nhà', '4G'] -> camera PHẢI có cả 'Trong nhà' VÀ '4G'
+                let matchAllTags = true;
+                if (selectedTags.size > 0) {
+                    const camTagsLower = (cam.tags || []).map(t => t.toLowerCase());
+                    const nameLower = cam.name.toLowerCase();
+
+                    for (const requiredTag of selectedTags) {
+                        const reqLower = requiredTag.toLowerCase();
+                        // Khớp nếu tag nằm trong danh sách tags hoặc có trong tên thiết bị
+                        const hasThisTag = camTagsLower.includes(reqLower) || 
+                                           camTagsLower.some(t => t.includes(reqLower)) ||
+                                           nameLower.includes(reqLower);
+                        if (!hasThisTag) {
+                            matchAllTags = false; // Thiếu ít nhất 1 điều kiện -> Loại bỏ ngay
+                            break;
+                        }
+                    }
+                }
+
+                return matchSearch && matchAllTags;
+            });
+
+            const countEl = document.getElementById('productResultCount');
+            if (countEl) countEl.innerText = `${filtered.length} sản phẩm`;
+
+            if (filtered.length === 0) {
+                const selectedTagsArr = Array.from(selectedTags);
+                const tagsPrompt = selectedTagsArr.length > 0 
+                    ? `khi chọn đồng thời các điều kiện: <b class="text-slate-800">[${selectedTagsArr.join(' + ')}]</b>` 
+                    : '';
+
+                grid.innerHTML = `
+                    <div class="col-span-full py-16 text-center text-slate-400 space-y-3 bg-white rounded-3xl border border-dashed border-slate-300 p-8">
+                        <i class="fa-solid fa-filter-circle-xmark text-5xl text-slate-300"></i>
+                        <p class="text-base font-bold text-slate-700">Không tìm thấy sản phẩm nào thỏa mãn!</p>
+                        <p class="text-xs text-slate-500 max-w-md mx-auto">Không có camera nào đáp ứng đủ tất cả các tiêu chí ${tagsPrompt}. Vui lòng bỏ bớt điều kiện lọc để xem thêm các mẫu khác.</p>
+                        <button onclick="clearAllTagFilters()" class="px-4 py-2 bg-brand-600 text-white text-xs font-bold rounded-xl hover:bg-brand-700 shadow-md shadow-brand-500/20 transition">
+                            <i class="fa-solid fa-arrow-rotate-left mr-1"></i> Bỏ chọn tất cả điều kiện
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(cam => {
+                // Tạo các chip tag hiển thị dưới ảnh
+                const tagsBadges = (cam.tags && cam.tags.length > 0 ? cam.tags : [cam.categoryLabel]).map(t => `
+                    <span class="font-bold text-brand-600 bg-red-50 border border-red-200/80 px-2.5 py-0.5 rounded-full flex items-center gap-1 text-[11px]">
+                        <i class="fa-solid fa-tag text-[9px]"></i>
+                        ${t}
+                    </span>
+                `).join(' ');
+
+                return `
+                    <div class="group bg-white rounded-3xl border border-slate-200/90 hover:border-brand-500/50 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden h-full">
+                        
+                        <!-- Top Image: Không tràn viền, có padding bảo vệ chi tiết và nền sáng -->
+                        <div class="relative w-full aspect-[4/3] bg-gradient-to-b from-slate-50 to-slate-100/70 p-4 sm:p-5 flex items-center justify-center flex-shrink-0 border-b border-slate-100">
+                            <span class="absolute top-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-900/90 backdrop-blur-sm text-white shadow-sm z-10">
+                                ${cam.badge}
+                            </span>
+                            <span class="absolute top-3 right-3 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-white/90 backdrop-blur-sm text-amber-800 border border-amber-300 shadow-sm z-10">
+                                ${cam.resolution}
+                            </span>
+                            
+                            <!-- Ảnh sản phẩm luôn trọn vẹn, không cắt xén -->
+                            <img 
+                                src="${cam.imageUrl}" 
+                                alt="${cam.name}" 
+                                onerror="this.onerror=null; this.src='${cam.fallbackSvg}';"
+                                class="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300"
+                            >
+                        </div>
+
+                        <!-- Bar trạng thái & Danh sách các thẻ Tag thực tế -->
+                        <div class="px-5 py-2.5 bg-slate-50 border-b border-slate-100 flex flex-wrap items-center justify-between gap-1.5 text-xs text-slate-500 flex-shrink-0">
+                            <span class="font-medium flex items-center gap-1.5"><i class="fa-solid fa-shield text-emerald-500"></i> Chính hãng 100%</span>
+                            <div class="flex flex-wrap items-center gap-1">
+                                ${tagsBadges}
+                            </div>
+                        </div>
+
+                        <!-- Content info: Nằm riêng trong ô, đẩy nút xuống đáy đồng đều giữa các cột -->
+                        <div class="p-5 sm:p-6 flex-1 flex flex-col justify-between space-y-5">
+                            <div>
+                                <h4 class="font-black text-slate-900 text-lg leading-snug group-hover:text-brand-600 transition-colors">
+                                    ${cam.name}
+                                </h4>
+                                
+                                <!-- Bullet Features -->
+                                <ul class="mt-3.5 space-y-1.5 text-xs text-slate-600">
+                                    ${cam.features.map(f => `
+                                        <li class="flex items-center gap-2">
+                                            <i class="fa-solid fa-circle-check text-brand-500 text-[10px]"></i>
+                                            <span>${f}</span>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+
+                            <!-- Price preview & Package Select Button -->
+                            <div class="space-y-3 pt-3 border-t border-slate-100">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="text-xs text-slate-500 font-medium">Giá từ (gói Cloud):</span>
+                                    <span class="text-xl font-black text-brand-600">${formatVND(cam.packages.cloud.price)}</span>
+                                </div>
+                                <div class="text-[11px] text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-200/80 flex items-center justify-between">
+                                    <span>Gói bán chạy (+ Thẻ 64GB):</span>
+                                    <span class="font-bold text-slate-800">${formatVND(cam.packages.setup_sd.price)}</span>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2 pt-1">
+                                    <button onclick="openCatalogueModal('${cam.id}')" class="w-full py-2.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5">
+                                        <i class="fa-solid fa-file-pdf text-red-600"></i> Xem Catalogue
+                                    </button>
+                                    <button onclick="openPackageSelectModal('${cam.id}')" class="w-full py-2.5 px-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md shadow-brand-500/20 transition flex items-center justify-center gap-1.5 active:scale-95">
+                                        <i class="fa-solid fa-layer-group"></i> Chọn gói này
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterCameras() {
+            renderCameraList();
+        }
+
+        function resetFilters() {
+            const sInput = document.getElementById('searchInput');
+            if (sInput) sInput.value = '';
+            clearAllTagFilters();
+        }
+
+        // Mở Modal Chọn Gói Cho Camera
+        function openPackageSelectModal(camId) {
+            const cam = CAMERA_DATABASE.find(c => c.id === camId);
+            if (!cam) return;
+
+            currentSelectedCameraId = camId;
+            selectedPackageKey = 'setup_sd'; // Mặc định gói phổ biến
+
+            document.getElementById('modalCameraName').innerText = cam.name;
+            const modalImg = document.getElementById('modalCameraImg');
+            modalImg.src = cam.imageUrl;
+            modalImg.onerror = function() {
+                this.onerror = null;
+                this.src = cam.fallbackSvg;
+            };
+            document.getElementById('modalCategoryBadge').innerText = cam.categoryLabel;
+            
+            // Render danh sách tính năng xuống dưới ảnh
+            document.getElementById('modalCameraSpecs').innerHTML = `
+                <div class="text-brand-600 font-extrabold mb-1">${cam.resolution}</div>
+                <div class="text-slate-600 font-normal space-y-1">
+                    ${cam.features.map(f => `<div class="flex items-center gap-1.5"><i class="fa-solid fa-check text-emerald-500 text-[10px]"></i><span>${f}</span></div>`).join('')}
+                </div>
+            `;
+
+            const container = document.getElementById('packageRadioContainer');
+            
+            const pkgKeys = ['cloud', 'setup_sd', 'bh_1y', 'bh_2y_sd'];
+            container.innerHTML = pkgKeys.map(key => {
+                const pkg = cam.packages[key];
+                const isSelected = key === selectedPackageKey;
+                return `
+                    <label class="package-option-label relative flex items-start gap-3.5 p-3.5 sm:p-4 rounded-2xl border-2 cursor-pointer transition ${isSelected ? 'border-brand-600 bg-red-50/50' : 'border-slate-200 hover:border-slate-300 bg-white'}" onclick="handlePackageRadioChange('${key}')">
+                        <input type="radio" name="cameraPackageRadio" value="${key}" ${isSelected ? 'checked' : ''} class="mt-1 h-4 w-4 text-brand-600 focus:ring-brand-500 border-slate-300">
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <span class="font-extrabold text-xs sm:text-sm text-slate-900">${pkg.name}</span>
+                                <span class="font-black text-sm sm:text-base text-brand-600">${formatVND(pkg.price)}</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1 leading-relaxed">${pkg.desc}</p>
+                            ${key === 'setup_sd' ? '<span class="inline-block mt-1.5 text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded">Gói khuyên dùng</span>' : ''}
+                            ${key === 'bh_2y_sd' ? '<span class="inline-block mt-1.5 text-[10px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">Gói an tâm toàn diện 2 năm</span>' : ''}
+                        </div>
+                    </label>
+                `;
+            }).join('');
+
+            document.getElementById('packageSelectModal').classList.remove('hidden');
+        }
+
+        function handlePackageRadioChange(key) {
+            selectedPackageKey = key;
+            document.querySelectorAll('.package-option-label').forEach(lbl => {
+                const radio = lbl.querySelector('input[type="radio"]');
+                if (radio && radio.value === key) {
+                    radio.checked = true;
+                    lbl.classList.remove('border-slate-200', 'bg-white');
+                    lbl.classList.add('border-brand-600', 'bg-red-50/50');
+                } else {
+                    lbl.classList.remove('border-brand-600', 'bg-red-50/50');
+                    lbl.classList.add('border-slate-200', 'bg-white');
+                }
+            });
+        }
+
+        function closePackageModal() {
+            document.getElementById('packageSelectModal').classList.add('hidden');
+            currentSelectedCameraId = null;
+        }
+
+        // Xác nhận thêm vào giỏ hàng
+        function confirmAddToOrder() {
+            if (!currentSelectedCameraId) return;
+            const cam = CAMERA_DATABASE.find(c => c.id === currentSelectedCameraId);
+            const pkg = cam.packages[selectedPackageKey];
+
+            // Kiểm tra xem đã có món này cùng gói trong giỏ chưa
+            const existingItem = cart.find(item => item.camId === currentSelectedCameraId && item.packageKey === selectedPackageKey);
+            if (existingItem) {
+                existingItem.qty += 1;
+            } else {
+                cart.push({
+                    cartItemId: Date.now().toString(),
+                    camId: cam.id,
+                    cameraName: cam.name,
+                    shortCode: cam.shortCode,
+                    packageKey: selectedPackageKey,
+                    packageName: pkg.name,
+                    unitPrice: pkg.price,
+                    qty: 1
+                });
+            }
+
+            closePackageModal();
+            updateCartUI();
+            showToast(`Đã thêm "${cam.shortCode} (${pkg.name})" vào đơn hàng!`);
+        }
+
+        // Giỏ hàng & Drawer
+        function toggleCartDrawer() {
+            const drawer = document.getElementById('cartDrawer');
+            drawer.classList.toggle('translate-x-full');
+        }
+
+        function updateCartUI() {
+            const totalQty = cart.reduce((acc, item) => acc + item.qty, 0);
+            const totalPrice = cart.reduce((acc, item) => acc + (item.unitPrice * item.qty), 0);
+
+            document.getElementById('cartCountBadge').innerText = totalQty;
+            document.getElementById('cartTotalItems').innerText = `${totalQty} chiếc`;
+            document.getElementById('cartTotalPrice').innerText = formatVND(totalPrice);
+
+            const list = document.getElementById('cartItemList');
+            if (cart.length === 0) {
+                list.innerHTML = `
+                    <div class="h-full flex flex-col items-center justify-center text-center text-slate-400 space-y-3 py-16">
+                        <i class="fa-solid fa-cart-arrow-down text-5xl text-slate-300"></i>
+                        <p class="text-sm font-semibold text-slate-500">Giỏ hàng của bạn đang trống</p>
+                        <p class="text-xs text-slate-400 max-w-xs">Hãy chọn một dòng camera và gói dịch vụ để đưa vào bảng tính chi phí.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = cart.map(item => `
+                <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/90 flex flex-col gap-2">
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <h5 class="text-xs font-bold text-slate-900 leading-tight">${item.cameraName}</h5>
+                            <span class="inline-block mt-1 text-[11px] font-semibold text-brand-600 bg-red-100/70 px-2 py-0.5 rounded">
+                                ${item.packageName}
+                            </span>
+                        </div>
+                        <button onclick="removeItemFromCart('${item.cartItemId}')" class="text-slate-400 hover:text-red-600 text-xs p-1">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-1 border-t border-slate-200/60 text-xs">
+                        <div class="flex items-center gap-2 bg-white rounded-lg border border-slate-200 px-2 py-0.5">
+                            <button onclick="adjustQty('${item.cartItemId}', -1)" class="text-slate-500 hover:text-slate-900 font-bold px-1">-</button>
+                            <span class="font-bold text-slate-800 min-w-4 text-center">${item.qty}</span>
+                            <button onclick="adjustQty('${item.cartItemId}', 1)" class="text-slate-500 hover:text-slate-900 font-bold px-1">+</button>
+                        </div>
+                        <span class="font-extrabold text-sm text-slate-900">${formatVND(item.unitPrice * item.qty)}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function adjustQty(cartItemId, delta) {
+            const item = cart.find(i => i.cartItemId === cartItemId);
+            if (!item) return;
+            item.qty += delta;
+            if (item.qty <= 0) {
+                cart = cart.filter(i => i.cartItemId !== cartItemId);
+            }
+            updateCartUI();
+        }
+
+        function removeItemFromCart(cartItemId) {
+            cart = cart.filter(i => i.cartItemId !== cartItemId);
+            updateCartUI();
+            showToast('Đã bỏ sản phẩm khỏi đơn hàng');
+        }
+
+        function clearCart() {
+            if (cart.length === 0) return;
+            cart = [];
+            updateCartUI();
+            showToast('Đã xóa toàn bộ giỏ hàng');
+        }
+
+        // Mở Modal Xem Trước Catalogue Để In
+        function openCatalogueModal(camId) {
+            const cam = CAMERA_DATABASE.find(c => c.id === camId);
+            if (!cam) return;
+
+            const printContent = document.getElementById('printableCatalogueContent');
+            printContent.innerHTML = `
+                <div class="max-w-2xl mx-auto border-2 border-slate-900 rounded-3xl p-6 sm:p-8 bg-white relative overflow-hidden font-sans">
+                    
+                    <!-- Top Telecom Header Banner -->
+                    <div class="border-b-2 border-brand-600 pb-4 mb-6 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-black uppercase tracking-widest text-slate-500">BẢNG BÁO GIÁ THIẾT BỊ & DỊCH VỤ</span>
+                            <h2 class="text-2xl sm:text-3xl font-black text-brand-600 uppercase tracking-tight mt-0.5">TIN HỌC CƯỜNG TÍN</h2>
+                            <p class="text-xs font-bold text-slate-800 uppercase tracking-wider">BẢO MẬT TỐI ĐA - CẢ NHÀ AN TÂM</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="inline-block bg-red-600 text-white font-extrabold text-xs px-3 py-1 rounded-full uppercase tracking-wider shadow">Chính Hãng</span>
+                            <p class="text-[11px] text-slate-500 mt-1 font-semibold">Catalogue Version 2026</p>
+                        </div>
+                    </div>
+
+                    <!-- Camera Graphic Presentation -->
+                    <div class="text-center mb-6">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-600">${cam.categoryLabel}</span>
+                        <h3 class="text-xl sm:text-2xl font-black text-slate-900 uppercase mt-0.5">${cam.name}</h3>
+                        
+                        <!-- 4 Featured Circular Highlights (Viettel/FPT Style) -->
+                        <div class="grid grid-cols-4 gap-2 my-5">
+                            <div class="flex flex-col items-center">
+                                <div class="w-12 h-12 rounded-full border-2 border-brand-500 bg-red-50 text-brand-600 flex items-center justify-center font-bold text-sm shadow-sm">
+                                    <i class="fa-solid fa-arrows-spin"></i>
+                                </div>
+                                <span class="text-[11px] font-bold text-slate-700 mt-1.5 leading-tight">Xoay 360°</span>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <div class="w-12 h-12 rounded-full border-2 border-brand-500 bg-red-50 text-brand-600 flex items-center justify-center font-bold text-sm shadow-sm">
+                                    <i class="fa-solid fa-camera"></i>
+                                </div>
+                                <span class="text-[11px] font-bold text-slate-700 mt-1.5 leading-tight">Độ nét cao</span>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <div class="w-12 h-12 rounded-full border-2 border-brand-500 bg-red-50 text-brand-600 flex items-center justify-center font-bold text-sm shadow-sm">
+                                    <i class="fa-solid fa-microphone"></i>
+                                </div>
+                                <span class="text-[11px] font-bold text-slate-700 mt-1.5 leading-tight">Đàm thoại 2C</span>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <div class="w-12 h-12 rounded-full border-2 border-brand-500 bg-red-50 text-brand-600 flex items-center justify-center font-bold text-sm shadow-sm">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                                </div>
+                                <span class="text-[11px] font-bold text-slate-700 mt-1.5 leading-tight">Lưu trữ Cloud</span>
+                            </div>
+                        </div>
+
+                        <!-- Product Showcase Image with Fallback (Full khung rộng cho trang in ấn) -->
+                        <div class="py-2 flex justify-center">
+                            <div class="w-full max-w-lg aspect-video rounded-3xl bg-slate-50 border border-slate-200 overflow-hidden shadow-inner flex items-center justify-center">
+                                <img 
+                                    src="${cam.imageUrl}" 
+                                    alt="${cam.name}" 
+                                    onerror="this.onerror=null; this.src='${cam.fallbackSvg}';" 
+                                    class="w-full h-full object-cover drop-shadow"
+                                >
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clean Price Table (Bảng giá theo mẫu bảng Excel đính kèm) -->
+                    <div class="rounded-2xl overflow-hidden border-2 border-brand-800 shadow-sm mb-6">
+                        <div class="bg-brand-800 text-white p-3 text-center font-black uppercase text-sm tracking-wider">
+                            BẢNG PHƯƠNG ÁN BÁO GIÁ CHI TIẾT
+                        </div>
+                        <table class="w-full text-left border-collapse">
+                            <tbody>
+                                <tr class="border-b border-slate-200 bg-slate-50">
+                                    <td class="p-3.5 text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
+                                        <i class="fa-solid fa-cloud text-brand-600"></i> ${cam.packages.cloud.name}
+                                    </td>
+                                    <td class="p-3.5 text-right font-black text-sm sm:text-base text-brand-700">
+                                        ${formatVND(cam.packages.cloud.price)}
+                                    </td>
+                                </tr>
+                                <tr class="border-b border-slate-200 bg-white">
+                                    <td class="p-3.5 text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
+                                        <i class="fa-solid fa-screwdriver-wrench text-brand-600"></i> ${cam.packages.setup_sd.name}
+                                    </td>
+                                    <td class="p-3.5 text-right font-black text-sm sm:text-base text-brand-700">
+                                        ${formatVND(cam.packages.setup_sd.price)}
+                                    </td>
+                                </tr>
+                                <tr class="border-b border-slate-200 bg-slate-50">
+                                    <td class="p-3.5 text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
+                                        <i class="fa-solid fa-shield-halved text-brand-600"></i> ${cam.packages.bh_1y.name}
+                                    </td>
+                                    <td class="p-3.5 text-right font-black text-sm sm:text-base text-brand-700">
+                                        ${formatVND(cam.packages.bh_1y.price)}
+                                    </td>
+                                </tr>
+                                <tr class="bg-red-50/70">
+                                    <td class="p-3.5 text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                                        <i class="fa-solid fa-award text-amber-600"></i> ${cam.packages.bh_2y_sd.name}
+                                    </td>
+                                    <td class="p-3.5 text-right font-black text-sm sm:text-base text-brand-700">
+                                        ${formatVND(cam.packages.bh_2y_sd.price)}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Ghi chú & Cam kết -->
+                    <div class="text-[11px] text-slate-600 space-y-1 mb-6 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                        <p class="font-bold text-slate-800">(*) Chính sách ưu đãi & Cam kết chất lượng:</p>
+                        <p>• Bảo hành 1 đổi 1 nhanh chóng khi có lỗi từ nhà sản xuất.</p>
+                        <p>• Thẻ nhớ 64Gb chính hãng đảm bảo khả năng ghi đè lưu trữ liên tục 5 - 7 ngày.</p>
+                        <p>• Miễn phí khảo sát vị trí lắp đặt và hướng dẫn cài đặt sử dụng trên điện thoại.</p>
+                    </div>
+
+                    <!-- Hotline Footer Box (Giống phong cách tờ rơi Viettel) -->
+                    <div class="border-2 border-dashed border-red-500 rounded-2xl p-4 text-center bg-red-50/30 flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div class="text-left">
+                            <span class="text-xs font-extrabold text-slate-600 uppercase">TỔNG ĐÀI TƯ VẤN & ĐẶT HÀNG:</span>
+                            <div class="text-2xl sm:text-3xl font-black text-brand-600 tracking-tight leading-none mt-1">0931.113.048</div>
+                            <div class="text-[11px] text-slate-600 font-medium mt-1">
+                                <i class="fa-solid fa-location-dot text-red-500 mr-1"></i> Thôn Tân Bình, xã Đắk Song, tỉnh Lâm Đồng
+                            </div>
+                        </div>
+                        <div class="text-xs text-slate-500 text-right">
+                            <span class="font-bold text-slate-800">LẮP ĐẶT NHANH TRONG NGÀY</span><br>
+                            Phục vụ tất cả các ngày trong tuần
+                        </div>
+                    </div>
+
+                </div>
+            `;
+
+            document.getElementById('cataloguePreviewModal').classList.remove('hidden');
+        }
+
+        function closeCatalogueModal() {
+            document.getElementById('cataloguePreviewModal').classList.add('hidden');
+        }
+
+        // Sao chép nội dung báo giá ra clipboard
+        function copyQuoteSummary() {
+            if (cart.length === 0) {
+                showToast('Chưa có sản phẩm nào để sao chép!');
+                return;
+            }
+
+            let text = "=== BẢNG BÁO GIÁ TIN HỌC CƯỜNG TÍN ===\n";
+            cart.forEach((item, index) => {
+                text += `${index + 1}. ${item.cameraName}\n`;
+                text += `   - Gói: ${item.packageName}\n`;
+                text += `   - Số lượng: ${item.qty} chiếc\n`;
+                text += `   - Thành tiền: ${formatVND(item.unitPrice * item.qty)}\n`;
+            });
+            const total = cart.reduce((acc, i) => acc + (i.unitPrice * i.qty), 0);
+            text += `\n=> TỔNG CỘNG: ${formatVND(total)}\n`;
+            text += `Cửa hàng: Tin học Cường Tín\n`;
+            text += `Hotline tư vấn & lắp đặt: 0931.113.048\n`;
+            text += `Địa chỉ: Thôn Tân Bình, xã Đắk Song, tỉnh Lâm Đồng\n`;
+
+            // Sử dụng textarea tạm thời để tương thích iFrame
+            const tempTextArea = document.createElement("textarea");
+            tempTextArea.value = text;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextArea);
+
+            showToast('Đã copy bảng dự toán báo giá vào bộ nhớ tạm!');
+        }
+
+        function openBookingConfirmationModal() {
+            if (cart.length === 0) {
+                showToast('Vui lòng chọn ít nhất 1 gói camera trước khi gửi yêu cầu!');
+                return;
+            }
+            showToast('Yêu cầu đã gửi tới Tin học Cường Tín! Chuyên viên sẽ gọi hỗ trợ ngay.');
+            toggleCartDrawer();
+        }
+
+        function openCustomHotlineModal() {
+            showToast('Tin học Cường Tín - Hotline: 0931.113.048 - Đắk Song, Lâm Đồng');
+        }
+
+        // Khởi chạy khi load trang
+        window.onload = function() {
+            initGasConfig();
+        };
+
+        // Toast thông báo
+        let toastTimeout;
+        function showToast(message) {
+            const toast = document.getElementById('toastNotification');
+            const msgEl = document.getElementById('toastMessage');
+            msgEl.innerText = message;
+            toast.classList.remove('hidden');
+            toast.classList.add('flex');
+
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('hidden');
+                toast.classList.remove('flex');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
