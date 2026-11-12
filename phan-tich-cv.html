@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Phân Tích Công Văn & Trích Xuất Nhiệm Vụ</title>
+    <!-- Tailwind CSS cho Giao diện -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PDF.js cho file PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <!-- Mammoth.js cho file DOCX -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.21/mammoth.browser.min.js"></script>
+    <!-- SheetJS cho file Excel/CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        /* Tùy chỉnh thanh cuộn cho bảng */
+        .custom-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="min-h-screen text-gray-800 p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto space-y-6 relative">
+        <!-- Header -->
+        <header class="text-center mb-8 relative">
+            <!-- Nút Cài đặt API -->
+            <button onclick="openApiModal()" class="absolute top-0 right-0 p-2 bg-white rounded-full shadow-sm text-gray-500 hover:text-blue-600 hover:bg-blue-50 border border-gray-200 transition-all" title="Cài đặt API Key">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            </button>
+
+            <h1 class="text-3xl md:text-4xl font-extrabold text-blue-700 tracking-tight">AI Phân Tích Công Văn</h1>
+            <p class="mt-2 text-gray-600 max-w-2xl mx-auto">Tải lên tài liệu PDF/DOCX hoặc dán văn bản trực tiếp. Hệ thống AI sẽ tự động đọc, hiểu ngữ cảnh và trích xuất danh sách nhiệm vụ được giao cho từng cá nhân/phòng ban.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Cột Trái: Input -->
+            <div class="lg:col-span-1 space-y-6">
+                <div class="glass-panel rounded-2xl shadow-sm p-6">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Đầu vào tài liệu</h2>
+                    
+                    <!-- File Upload -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tải file (.pdf, .docx, .xlsx, Ảnh)</label>
+                        <div class="flex items-center justify-center w-full">
+                            <label for="file-upload" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition">
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <svg class="w-8 h-8 mb-3 text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                                    </svg>
+                                    <p class="mb-2 text-sm text-gray-500" id="file-name-display"><span class="font-semibold">Nhấn để tải lên</span> hoặc kéo thả</p>
+                                </div>
+                                <input id="file-upload" type="file" class="hidden" accept=".pdf,.docx,.xlsx,.csv,image/*" onchange="handleFileSelect(event)" />
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="relative flex items-center py-2">
+                        <div class="flex-grow border-t border-gray-300"></div>
+                        <span class="flex-shrink-0 mx-4 text-gray-400 text-sm font-medium">HOẶC</span>
+                        <div class="flex-grow border-t border-gray-300"></div>
+                    </div>
+
+                    <!-- Direct Text Paste -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Dán nội dung trực tiếp</label>
+                        <textarea id="raw-text-input" rows="6" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none" placeholder="Dán nội dung văn bản vào đây nếu bạn không muốn tải file..."></textarea>
+                    </div>
+
+                    <!-- Action Button -->
+                    <button id="analyze-btn" onclick="startAnalysis()" class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl transition duration-200 shadow-md">
+                        <span id="btn-text">Phân Tích Văn Bản</span>
+                        <div id="btn-loader" class="loader hidden border-white border-top-transparent border-t-white"></div>
+                    </button>
+
+                    <!-- Message Box cho lỗi -->
+                    <div id="message-box" class="mt-4 p-3 rounded-lg text-sm hidden"></div>
+                </div>
+            </div>
+
+            <!-- Cột Phải: Kết quả -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="glass-panel rounded-2xl shadow-sm p-6 h-full flex flex-col">
+                    <div class="flex justify-between items-center border-b pb-2 mb-4">
+                        <h2 class="text-xl font-semibold text-gray-800">Kết Quả Phân Công Nhiệm Vụ</h2>
+                        <span id="task-count" class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full hidden">0 nhiệm vụ</span>
+                    </div>
+
+                    <!-- Trạng thái chờ -->
+                    <div id="empty-state" class="flex-grow flex flex-col items-center justify-center text-gray-400 min-h-[300px]">
+                        <svg class="w-16 h-16 mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <p>Kết quả sẽ hiển thị tại đây sau khi phân tích.</p>
+                    </div>
+
+                    <!-- Bảng hiển thị kết quả -->
+                    <div id="results-container" class="hidden flex-grow overflow-hidden flex flex-col space-y-4">
+                        
+                        <!-- Phần phân tích bổ sung (Tóm tắt & Meta) -->
+                        <div id="analysis-meta" class="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                            <h3 class="font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                Thông tin chung của văn bản
+                            </h3>
+                            <p class="text-sm text-gray-800 mb-3"><span class="font-semibold text-gray-600">Tóm tắt:</span> <span id="doc-summary"></span></p>
+                            <div class="flex flex-wrap gap-4 text-sm">
+                                <p class="text-gray-800"><span class="font-semibold text-gray-600">Loại văn bản:</span> <span id="doc-type" class="bg-white px-2 py-1 rounded shadow-sm border border-gray-200 ml-1"></span></p>
+                                <p class="text-gray-800"><span class="font-semibold text-gray-600">Độ khẩn cấp:</span> <span id="doc-urgency" class="bg-white px-2 py-1 rounded shadow-sm border border-gray-200 ml-1 font-medium text-red-600"></span></p>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto overflow-y-auto custom-scrollbar flex-grow border border-gray-200 rounded-lg">
+                            <table class="min-w-full text-left text-sm text-gray-600">
+                                <thead class="bg-gray-50 text-gray-700 sticky top-0 shadow-sm">
+                                    <tr>
+                                        <th scope="col" class="px-4 py-3 font-semibold w-1/4">Thành viên / Đơn vị</th>
+                                        <th scope="col" class="px-4 py-3 font-semibold w-2/4">Nhiệm vụ cụ thể</th>
+                                        <th scope="col" class="px-4 py-3 font-semibold w-1/6">Thời hạn (Deadline)</th>
+                                        <th scope="col" class="px-4 py-3 font-semibold w-1/6">Ghi chú</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="results-body" class="divide-y divide-gray-100 bg-white">
+                                    <!-- Dữ liệu sẽ được chèn vào đây -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cấu hình API Key -->
+    <div id="api-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center z-50 transition-opacity">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-11/12 max-w-md border border-gray-100 transform transition-all">
+            <h3 class="text-xl font-bold mb-2 text-gray-800 flex items-center gap-2">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                Cấu hình API Key
+            </h3>
+            <p class="text-sm text-gray-600 mb-4">Nhập Google Gemini API Key để sử dụng ứng dụng. Khóa này sẽ được lưu an toàn trên trình duyệt của bạn.</p>
+            <input type="password" id="api-key-input" class="w-full p-3 border border-gray-300 rounded-xl mb-6 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-mono" placeholder="AIzaSy...">
+            <div class="flex justify-between items-center">
+                <button onclick="deleteApiKey()" class="px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-medium rounded-lg transition">Xóa khóa</button>
+                <div class="flex gap-2">
+                    <button onclick="closeApiModal()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 font-medium rounded-lg transition">Hủy</button>
+                    <button onclick="saveApiKey()" class="px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 font-medium rounded-lg shadow-sm transition">Lưu thay đổi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Cấu hình worker cho pdf.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+        let extractedText = "";
+        let aiPayloadData = null; // Chứa dữ liệu gốc (Base64 PDF, HTML DOCX, Base64 Image)
+        let aiPayloadType = 'text'; // Phân loại: 'text', 'html', 'pdf', 'image'
+        let aiPayloadMimeType = ''; // Dành riêng cho Image/PDF để báo cho AI biết loại file
+
+        // Elements
+        const fileInput = document.getElementById('file-upload');
+        const fileNameDisplay = document.getElementById('file-name-display');
+        const rawTextInput = document.getElementById('raw-text-input');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const btnText = document.getElementById('btn-text');
+        const btnLoader = document.getElementById('btn-loader');
+        const messageBox = document.getElementById('message-box');
+        const emptyState = document.getElementById('empty-state');
+        const resultsContainer = document.getElementById('results-container');
+        const resultsBody = document.getElementById('results-body');
+        const taskCount = document.getElementById('task-count');
+
+        // Elements mới cho phân tích bổ sung
+        const docSummary = document.getElementById('doc-summary');
+        const docType = document.getElementById('doc-type');
+        const docUrgency = document.getElementById('doc-urgency');
+
+        // Quản lý API Key bằng Local Storage
+        const STORAGE_KEY = 'gemini_api_key';
+
+        const apiModal = document.getElementById('api-modal');
+        const apiKeyInput = document.getElementById('api-key-input');
+
+        function openApiModal() {
+            apiKeyInput.value = localStorage.getItem(STORAGE_KEY) || '';
+            apiModal.classList.remove('hidden');
+        }
+
+        function closeApiModal() {
+            apiModal.classList.add('hidden');
+        }
+
+        function saveApiKey() {
+            const val = apiKeyInput.value.trim();
+            if (val) {
+                localStorage.setItem(STORAGE_KEY, val);
+                closeApiModal();
+                showMessage("Đã lưu API Key thành công!", false);
+            } else {
+                showMessage("Vui lòng không để trống API Key.", true);
+            }
+        }
+
+        function deleteApiKey() {
+            localStorage.removeItem(STORAGE_KEY);
+            apiKeyInput.value = '';
+            closeApiModal();
+            showMessage("Đã xóa API Key khỏi bộ nhớ.", false);
+        }
+
+        // Hàm xử lý hiển thị thông báo
+        function showMessage(msg, isError = false) {
+            messageBox.textContent = msg;
+            messageBox.className = `mt-4 p-3 rounded-lg text-sm block ${isError ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'}`;
+        }
+        function hideMessage() { messageBox.classList.add('hidden'); }
+
+        // Theo dõi nếu người dùng tự sửa text sau khi tải file
+        rawTextInput.addEventListener('input', () => {
+            if (aiPayloadType === 'pdf') {
+                aiPayloadType = 'text'; // Nếu người dùng gõ vào ô, chuyển về chế độ text thuần
+            }
+        });
+
+        // Hàm xử lý khi chọn file
+        async function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            fileNameDisplay.innerHTML = `<span class="font-semibold text-blue-600">${file.name}</span>`;
+            rawTextInput.value = ""; 
+            hideMessage();
+            extractedText = "";
+            aiPayloadData = null;
+            aiPayloadType = 'text';
+            aiPayloadMimeType = '';
+            
+            try {
+                setLoading(true, "Đang xử lý file...");
+                const fileType = file.type || file.name.toLowerCase();
+                
+                if (fileType.includes('pdf') || file.name.toLowerCase().endsWith('.pdf')) {
+                    // ĐỌC PDF LÀM BASE64 ĐỂ GỬI NGUYÊN BẢN (GIỮ BẢNG BIỂU, ẢNH)
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        aiPayloadData = e.target.result.split(',')[1];
+                        aiPayloadType = 'pdf';
+                        aiPayloadMimeType = 'application/pdf';
+                        rawTextInput.value = "📄 [Tài liệu PDF đã được tải lên]\n\nHệ thống sẽ gửi trực tiếp tệp gốc này cho AI. Điều này giúp AI 'nhìn' thấy và phân tích cực kỳ chính xác các BẢNG BIỂU, HÌNH ẢNH và BỐ CỤC chuẩn của văn bản.\n\n(Bạn có thể xóa dòng này và dán văn bản khác vào đây nếu muốn thay thế).";
+                        setLoading(false);
+                        showMessage("Đã đính kèm file PDF nguyên bản. Sẵn sàng phân tích!");
+                    };
+                    reader.readAsDataURL(file);
+                    return; // Thoát để chờ reader onload
+                } else if (fileType.startsWith('image/')) {
+                    // ĐỌC HÌNH ẢNH (JPG, PNG, WEBP...)
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        aiPayloadData = e.target.result.split(',')[1];
+                        aiPayloadType = 'image';
+                        aiPayloadMimeType = file.type;
+                        rawTextInput.value = `🖼️ [Hình ảnh đã được tải lên: ${file.name}]\n\nHệ thống sẽ gửi trực tiếp ảnh chụp này cho AI để phân tích và nhận diện chữ (OCR).`;
+                        setLoading(false);
+                        showMessage("Đã đính kèm hình ảnh thành công. Sẵn sàng phân tích!");
+                    };
+                    reader.readAsDataURL(file);
+                    return;
+                } else if (fileType.includes('wordprocessingml.document') || file.name.toLowerCase().endsWith('.docx')) {
+                    // ĐỌC DOCX SANG HTML ĐỂ GIỮ CẤU TRÚC BẢNG (TABLES)
+                    const arrayBuffer = await file.arrayBuffer();
+                    
+                    // 1. Lấy HTML gửi cho AI
+                    const htmlResult = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+                    aiPayloadData = htmlResult.value;
+                    aiPayloadType = 'html';
+                    
+                    // 2. Lấy Text thường để hiển thị cho người dùng xem trước
+                    const textResult = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+                    rawTextInput.value = textResult.value; 
+
+                    showMessage("Đã đọc DOCX thành công (Giữ nguyên cấu trúc Bảng/Biểu). Sẵn sàng phân tích!");
+                } else if (fileType.includes('spreadsheetml') || file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.csv')) {
+                    // ĐỌC EXCEL SANG HTML BẰNG SHEETJS
+                    const arrayBuffer = await file.arrayBuffer();
+                    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                    
+                    let combinedHtml = "";
+                    let combinedText = "";
+                    
+                    workbook.SheetNames.forEach(sheetName => {
+                        const sheet = workbook.Sheets[sheetName];
+                        // Lấy cấu trúc bảng dạng HTML cho AI đọc
+                        combinedHtml += `<h3>Bảng (Sheet): ${sheetName}</h3>` + XLSX.utils.sheet_to_html(sheet) + "<br/>";
+                        // Lấy text hiển thị cho người dùng
+                        combinedText += `--- Bảng (Sheet): ${sheetName} ---\n` + XLSX.utils.sheet_to_csv(sheet) + "\n\n";
+                    });
+                    
+                    aiPayloadData = combinedHtml;
+                    aiPayloadType = 'html';
+                    rawTextInput.value = combinedText; 
+
+                    showMessage("Đã đọc file Excel/CSV thành công. Sẵn sàng phân tích!");
+                } else {
+                    throw new Error("Định dạng file không được hỗ trợ. Vui lòng dùng .pdf, .docx, .xlsx hoặc hình ảnh (jpg, png).");
+                }
+            } catch (err) {
+                showMessage(`Lỗi đọc file: ${err.message}`, true);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Quản lý trạng thái UI khi load
+        function setLoading(isLoading, text = "Đang xử lý...") {
+            if (isLoading) {
+                analyzeBtn.disabled = true;
+                analyzeBtn.classList.add('opacity-80', 'cursor-not-allowed');
+                btnText.textContent = text;
+                btnLoader.classList.remove('hidden');
+            } else {
+                analyzeBtn.disabled = false;
+                analyzeBtn.classList.remove('opacity-80', 'cursor-not-allowed');
+                btnText.textContent = "Phân Tích Văn Bản";
+                btnLoader.classList.add('hidden');
+            }
+        }
+
+        // Hàm bắt đầu phân tích với API
+        async function startAnalysis() {
+            hideMessage();
+            const textToAnalyze = rawTextInput.value.trim();
+            
+            if (!textToAnalyze && aiPayloadType !== 'pdf') {
+                showMessage("Vui lòng tải lên file tài liệu hoặc dán nội dung văn bản trước.", true);
+                return;
+            }
+
+            const currentApiKey = localStorage.getItem(STORAGE_KEY);
+            if (!currentApiKey) {
+                showMessage("Vui lòng cấu hình API Key (biểu tượng bánh răng) trước khi phân tích.", true);
+                openApiModal();
+                return;
+            }
+
+            setLoading(true, "AI đang phân tích...");
+            emptyState.classList.add('hidden');
+            resultsContainer.classList.add('hidden');
+            taskCount.classList.add('hidden');
+            
+            try {
+                // Gọi tới Gemini API bằng mô hình gemini-3-flash-preview
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${currentApiKey}`;
+                
+                const systemPrompt = "Bạn là một chuyên gia AI chuyên phân tích công văn, quyết định và biên bản họp. Nhiệm vụ của bạn là đọc hiểu toàn bộ văn bản và thực hiện các yêu cầu sau:\n\n1. Tóm tắt nội dung chính, xác định loại văn bản và mức độ khẩn cấp.\n2. Trích xuất mọi cá nhân hoặc phòng ban được nhắc đến và công việc của họ.\n3. QUAN TRỌNG: Gộp tất cả các nhiệm vụ của cùng một người hoặc cùng một đơn vị vào chung một đối tượng (mảng tasks). Không tạo nhiều bản ghi cho cùng một người.\n4. Nếu văn bản là Quyết định thành lập ban, ngành: Việc một người được phân công giữ chức vụ (Trưởng ban, Phó ban...) PHẢI ĐƯỢC XEM LÀ MỘT NHIỆM VỤ.\n5. TUYỆT ĐỐI KHÔNG BỎ SÓT CÁC CON SỐ: Nếu nhiệm vụ có liên quan đến số tiền, ngân sách, số lượng, tỷ lệ phần trăm... phải bóc tách riêng vào trường dữ liệu tương ứng.\n\nTuyệt đối không bỏ sót bất kỳ ai. Trả về định dạng JSON chính xác.";
+                
+                // Xây dựng payload thông minh tùy loại định dạng gốc
+                let contentParts = [
+                    { text: systemPrompt }
+                ];
+
+                if (aiPayloadType === 'pdf' && aiPayloadData) {
+                    // Gửi trực tiếp Base64 của PDF
+                    contentParts.push({
+                        inlineData: { mimeType: aiPayloadMimeType, data: aiPayloadData }
+                    });
+                    contentParts.push({ text: "Hãy phân tích tài liệu PDF trên để thực hiện các yêu cầu. Chú ý đọc kỹ nội dung bên trong các BẢNG BIỂU, biểu mẫu và sơ đồ có trong file." });
+                } else if (aiPayloadType === 'image' && aiPayloadData) {
+                    // Gửi trực tiếp Base64 của Hình ảnh
+                    contentParts.push({
+                        inlineData: { mimeType: aiPayloadMimeType, data: aiPayloadData }
+                    });
+                    contentParts.push({ text: "Hãy đọc nội dung từ hình ảnh bản chụp tài liệu/công văn trên và thực hiện các yêu cầu. Nhận diện các bảng, chữ ký nếu có." });
+                } else if (aiPayloadType === 'html' && aiPayloadData) {
+                    // Gửi HTML của DOCX / EXCEL để AI đọc được bảng
+                    contentParts.push({ text: "Tài liệu cần phân tích (Được giữ dưới định dạng HTML để bạn phân tích chính xác cấu trúc Bảng cột và Danh sách):\n\n" + aiPayloadData });
+                } else {
+                    // Gửi dạng chữ thường
+                    contentParts.push({ text: "Tài liệu cần phân tích:\n\n" + textToAnalyze });
+                }
+
+                const payload = {
+                    contents: [{
+                        parts: contentParts
+                    }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                summary: { type: "STRING", description: "Tóm tắt ngắn gọn nội dung chính của văn bản (khoảng 2-3 câu)." },
+                                docType: { type: "STRING", description: "Loại văn bản (Ví dụ: Quyết định, Thông báo, Kế hoạch, Chỉ thị...)." },
+                                urgency: { type: "STRING", description: "Mức độ khẩn cấp (Ví dụ: Bình thường, Khẩn, Thượng khẩn...)." },
+                                assignments: {
+                                    type: "ARRAY",
+                                    description: "Danh sách phân công nhiệm vụ, ĐÃ ĐƯỢC GỘP THEO TỪNG CÁ NHÂN/ĐƠN VỊ. Mỗi người/đơn vị chỉ xuất hiện 1 lần.",
+                                    items: {
+                                        type: "OBJECT",
+                                        properties: {
+                                            assignee: { type: "STRING", description: "Tên cá nhân, phòng ban hoặc đơn vị." },
+                                            tasks: {
+                                                type: "ARRAY",
+                                                description: "Danh sách tất cả các nhiệm vụ của người/đơn vị này.",
+                                                items: {
+                                                    type: "OBJECT",
+                                                    properties: {
+                                                        action: { type: "STRING", description: "Mô tả chi tiết 1 nhiệm vụ/hành động hoặc chức vụ." },
+                                                        deadline: { type: "STRING", description: "Thời hạn (ghi 'Không xác định' nếu không có)." },
+                                                        figures: { type: "STRING", description: "Trích xuất Y NGUYÊN các con số quan trọng liên quan đến nhiệm vụ này (ví dụ: 50.000.000 VNĐ, 20%, 3 chiếc, 100ha...). Nếu nhiệm vụ không chứa bất kỳ con số/số tiền nào, ghi 'Không'." }
+                                                    },
+                                                    required: ["action", "deadline", "figures"]
+                                                }
+                                            },
+                                            notes: { type: "STRING", description: "Ghi chú chung cho người/đơn vị này (nếu không có ghi 'Không')." }
+                                        },
+                                        required: ["assignee", "tasks", "notes"]
+                                    }
+                                }
+                            },
+                            required: ["summary", "docType", "urgency", "assignments"]
+                        }
+                    }
+                };
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates.length > 0) {
+                    const jsonText = result.candidates[0].content.parts[0].text;
+                    const parsedData = JSON.parse(jsonText);
+                    renderResults(parsedData);
+                } else {
+                    throw new Error("Không nhận được kết quả hợp lệ từ AI.");
+                }
+
+            } catch (err) {
+                console.error("Lỗi API:", err);
+                showMessage("Đã xảy ra lỗi khi phân tích. Vui lòng thử lại sau.", true);
+                emptyState.classList.remove('hidden');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Hàm render kết quả ra bảng HTML
+        function renderResults(data) {
+            resultsBody.innerHTML = "";
+            const tasks = data.assignments || [];
+            
+            if (!tasks || tasks.length === 0) {
+                emptyState.innerHTML = `
+                    <svg class="w-16 h-16 mb-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    <p class="text-gray-600">AI không tìm thấy nhiệm vụ cụ thể nào được giao trong văn bản này.</p>
+                `;
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            // Đổ dữ liệu vào phần Metadata
+            docSummary.textContent = data.summary || "Không có thông tin tổng hợp.";
+            docType.textContent = data.docType || "Không xác định";
+            docUrgency.textContent = data.urgency || "Bình thường";
+            
+            let totalActions = 0;
+
+            tasks.forEach(assignment => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-blue-50/50 transition-colors group border-b border-gray-100 last:border-0";
+                
+                // Gộp các nhiệm vụ vào 1 ô, hiển thị list-disc
+                let taskListHtml = '<ul class="list-disc pl-4 space-y-3 py-1">';
+                let deadlineListHtml = '<ul class="space-y-3 py-1">';
+                
+                assignment.tasks.forEach(t => {
+                    totalActions++;
+                    
+                    // Xử lý hiển thị nổi bật cho số tiền/con số
+                    let figureBadge = '';
+                    if (t.figures && t.figures !== 'Không' && t.figures.toLowerCase() !== 'không có' && t.figures.toLowerCase() !== 'không xác định') {
+                        figureBadge = `<div class="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Số liệu: ${escapeHTML(t.figures)}
+                        </div>`;
+                    }
+
+                    taskListHtml += `<li>
+                        <div class="text-gray-800 leading-relaxed">${escapeHTML(t.action)}</div>
+                        ${figureBadge}
+                    </li>`;
+                    
+                    const isUrgent = t.deadline && t.deadline !== 'Không' && t.deadline.toLowerCase() !== 'không xác định';
+                    deadlineListHtml += `<li class="${isUrgent ? 'text-red-600 font-medium' : 'text-gray-500'}">
+                        ${isUrgent ? '⏳ ' : ''}${escapeHTML(t.deadline)}
+                    </li>`;
+                });
+                
+                taskListHtml += '</ul>';
+                deadlineListHtml += '</ul>';
+                
+                tr.innerHTML = `
+                    <td class="px-4 py-4 align-top">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                            ${escapeHTML(assignment.assignee)}
+                        </span>
+                    </td>
+                    <td class="px-4 py-4 align-top text-gray-800">${taskListHtml}</td>
+                    <td class="px-4 py-4 align-top text-sm">${deadlineListHtml}</td>
+                    <td class="px-4 py-4 align-top text-gray-500 text-sm italic">${escapeHTML(assignment.notes)}</td>
+                `;
+                resultsBody.appendChild(tr);
+            });
+
+            taskCount.textContent = `${tasks.length} Đơn vị / Cá nhân (${totalActions} đầu việc)`;
+            taskCount.classList.remove('hidden');
+            resultsContainer.classList.remove('hidden');
+        }
+
+        // Utility: Ngăn chặn XSS khi render chuỗi
+        function escapeHTML(str) {
+            if (!str) return "";
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+    </script>
+</body>
+</html>
